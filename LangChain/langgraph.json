@@ -1,0 +1,9 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "my_agent": "./src/langGraph/my_agent.ts:agent"
+  },
+  "env": {
+    "OPENAI_API_KEY": "sk-9bad29ab479247b38fec2e22ab677503"
+  }
+}
