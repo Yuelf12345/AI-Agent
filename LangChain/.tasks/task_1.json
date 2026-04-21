@@ -1,0 +1,8 @@
+{
+  "id": 1,
+  "subject": "查看当前目录",
+  "description": "执行命令查看当前工作目录",
+  "status": "completed",
+  "blockedBy": [],
+  "owner": ""
+}

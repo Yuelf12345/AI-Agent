@@ -1,11 +1,9 @@
-/**
- * Starter LangGraph.js Template
- * Make this code your own!
- */
 import { StateGraph } from "@langchain/langgraph";
 import { RunnableConfig } from "@langchain/core/runnables";
 import { StateAnnotation } from "./state.js";
-
+import { ChatOpenAI } from "@langchain/openai";
+import * as dotenv from "dotenv";
+dotenv.config();
 /**
  * Define a node, these do the work of the graph and should have most of the logic.
  * Must return a subset of the properties set in StateAnnotation.
@@ -18,53 +16,16 @@ const callModel = async (
   state: typeof StateAnnotation.State,
   _config: RunnableConfig,
 ): Promise<typeof StateAnnotation.Update> => {
-  /**
-   * Do some work... (e.g. call an LLM)
-   * For example, with LangChain you could do something like:
-   *
-   * ```bash
-   * $ npm i @langchain/anthropic
-   * ```
-   *
-   * ```ts
-   * import { ChatAnthropic } from "@langchain/anthropic";
-   * const model = new ChatAnthropic({
-   *   model: "claude-3-5-sonnet-20240620",
-   *   apiKey: process.env.ANTHROPIC_API_KEY,
-   * });
-   * const res = await model.invoke(state.messages);
-   * ```
-   *
-   * Or, with an SDK directly:
-   *
-   * ```bash
-   * $ npm i openai
-   * ```
-   *
-   * ```ts
-   * import OpenAI from "openai";
-   * const openai = new OpenAI({
-   *   apiKey: process.env.OPENAI_API_KEY,
-   * });
-   *
-   * const chatCompletion = await openai.chat.completions.create({
-   *   messages: [{
-   *     role: state.messages[0]._getType(),
-   *     content: state.messages[0].content,
-   *   }],
-   *   model: "gpt-4o-mini",
-   * });
-   * ```
-   */
+  const model = new ChatOpenAI({
+    model: "qwen-plus",
+    temperature: 0.5,
+    maxTokens: 1000,
+  });
   console.log("Current state:", state);
-  return {
-    messages: [
-      {
-        role: "assistant",
-        content: `Hi there! How are you?`,
-      },
-    ],
-  };
+  const response = await model.invoke([
+    { role: "user", content: "Hi there! How are you?" },
+  ]);
+  return { messages: [response] };
 };
 
 /**

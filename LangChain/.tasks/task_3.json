@@ -1,0 +1,8 @@
+{
+  "id": 3,
+  "subject": "实现打印 'hello world' 函数",
+  "description": "在 hello.ts 文件中添加代码，实现一个打印 'hello world' 的函数",
+  "status": "completed",
+  "blockedBy": [],
+  "owner": ""
+}
