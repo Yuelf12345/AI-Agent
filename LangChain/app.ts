@@ -4,12 +4,12 @@
 
 // import "./src/MCP/index"
 
-// import './src/templates/2.tool_use.ts'
-// import './src/templates/4.subagent.ts'
-// import './src/templates/5.skill-loading.ts'
-// import './src/templates/6.context.ts'
-// import "./src/templates/7.task.ts"
-// import "./src/templates/8.bg_task.ts"
-// import "./src/templates/9.teams.ts"
-// import "./src/templates/10.teams_protocols.ts"
-import "./src/templates/s12_worktree_task_isolation.ts"
+// import './src/demo/2.tool_use.ts'
+// import './src/demo/4.subagent.ts'
+// import './src/demo/5.skill-loading.ts'
+// import './src/demo/6.context.ts'
+// import "./src/demo/7.task.ts"
+// import "./src/demo/8.bg_task.ts"
+// import "./src/demo/9.teams.ts"
+// import "./src/demo/10.teams_protocols.ts"
+import "./src/demo/s12_worktree_task_isolation.js"
