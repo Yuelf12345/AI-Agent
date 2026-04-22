@@ -2,14 +2,19 @@
   "team_name": "default",
   "members": [
     {
-      "name": "alice",
-      "role": "coder",
+      "name": "Alice",
+      "role": "developer",
       "status": "working"
     },
     {
-      "name": "bob",
-      "role": "tester",
+      "name": "Bob",
+      "role": "developer",
       "status": "working"
+    },
+    {
+      "name": "Charlie",
+      "role": "tester",
+      "status": "idle"
     }
   ]
 }

@@ -1,3 +1,2 @@
-{"type":"broadcast","from":"lead","content":"status update: phase 1 complete","timestamp":1776778368103}
-{"type":"shutdown_request","from":"lead","content":"Shutdown request received. Please wrap up and terminate gracefully.","timestamp":1776778487252}
-{"type":"broadcast","from":"lead","content":"status update: phase 1 complete","timestamp":1776778732821}
+{"type":"broadcast","from":"lead","content":"Please check the taskboard and claim any open tasks.","timestamp":1776846161800}
+{"type":"message","from":"lead","content":"Please check the taskboard and claim one open task by updating its status to 'in progress'.","timestamp":1776846169868}

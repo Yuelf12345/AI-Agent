@@ -1,5 +1,2 @@
-{"type":"message","from":"lead","content":"Hi Bob, I've completed the initial implementation. Please start testing it.","timestamp":1776778287118}
-{"type":"broadcast","from":"lead","content":"status update: phase 1 complete","timestamp":1776778368103}
-{"type":"shutdown_request","from":"lead","content":"Shutdown request received. Please wrap up and terminate gracefully.","timestamp":1776778487252}
-{"type":"message","from":"lead","content":"Hi bob, I've implemented the feature. Please test it and let me know if there are any issues.","timestamp":1776778717095}
-{"type":"broadcast","from":"lead","content":"status update: phase 1 complete","timestamp":1776778732822}
+{"type":"broadcast","from":"lead","content":"Please check the taskboard and claim any open tasks.","timestamp":1776846161801}
+{"type":"message","from":"lead","content":"Please check the taskboard and claim one open task by updating its status to 'in progress'.","timestamp":1776846171636}

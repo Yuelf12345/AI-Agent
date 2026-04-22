@@ -10,4 +10,6 @@
 // import './src/templates/6.context.ts'
 // import "./src/templates/7.task.ts"
 // import "./src/templates/8.bg_task.ts"
-import "./src/templates/9.teams.ts"
+// import "./src/templates/9.teams.ts"
+// import "./src/templates/10.teams_protocols.ts"
+import "./src/templates/s12_worktree_task_isolation.ts"
