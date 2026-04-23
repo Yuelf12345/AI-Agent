@@ -40,5 +40,8 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
+
+    "allowImportingTsExtensions": true,
+    "noEmit": true,  // 必须同时启用
   }
 }

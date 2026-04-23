@@ -12,4 +12,4 @@
 // import "./src/demo/8.bg_task.ts"
 // import "./src/demo/9.teams.ts"
 // import "./src/demo/10.teams_protocols.ts"
-import "./src/demo/s12_worktree_task_isolation.js"
+import "./src/claudeCode/s12_worktree_task_isolation.js"
