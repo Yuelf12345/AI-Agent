@@ -23,8 +23,8 @@ import {
   ToolMessage,
   type ToolRuntime,
 } from "langchain";
-import { model } from "./0.agent";
-import { historyPrompt } from "./1.prompt";
+import { model } from "./0.agent.ts";
+import { historyPrompt } from "./1.prompt.ts";
 import * as z from "zod";
 import { RemoveMessage } from "@langchain/core/messages";
 

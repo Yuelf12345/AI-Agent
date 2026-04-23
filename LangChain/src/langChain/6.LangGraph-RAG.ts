@@ -7,7 +7,7 @@ import { MemoryVectorStore } from "@langchain/classic/vectorstores/memory";
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { Document } from "@langchain/core/documents";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
-import { model } from "./0.agent";
+import { model } from "./0.agent.ts";
 import * as z from "zod";
 
 // 1. 定义状态 Schema
