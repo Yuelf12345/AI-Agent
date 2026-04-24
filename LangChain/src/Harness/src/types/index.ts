@@ -115,14 +115,29 @@ export interface SkillDefinition {
 }
 
 // ============ Agent Types ============
-export type AgentState = 
-  | 'IDLE'
-  | 'ROUTING'
-  | 'PLANNING'
-  | 'EXECUTING'
-  | 'OBSERVING'
-  | 'RESPONDING'
-  | 'WAITING_HUMAN';
+
+/**
+ * Agent状态枚举
+ */
+export enum AgentState {
+  IDLE = "IDLE",
+  RUNNING = "RUNNING",
+  WAITING = "WAITING",
+  ERROR = "ERROR",
+  COMPLETED = "COMPLETED",
+}
+
+/**
+ * Agent配置接口
+ */
+export interface AgentConfig {
+  id: string;
+  name: string;
+  toolNames?: string[];
+  llm?: any;
+  systemPrompt?: string;
+}
+
 
 export interface AgentContext {
   conversationId: string;
@@ -136,6 +151,68 @@ export interface AgentContext {
     startTime: Date;
     turnCount: number;
   };
+}
+
+// ============ Router Types ============
+
+/**
+ * 任务类型枚举
+ */
+export type TaskType = 'simple' | 'complex';
+
+/**
+ * Router路由结果
+ */
+export interface RouterResult {
+  taskType: TaskType;
+  reasoning: string;      // 为什么这样判断
+  targetAgent?: string;   // simple任务时，指定要调用的Agent
+  confidence: number;    // 判断置信度 0-1
+}
+
+// ============ Planner Types ============
+
+/**
+ * 子任务定义
+ */
+export interface SubTask {
+  id: string;
+  description: string;      // 任务描述
+  assignedAgent: string;    // 负责的Worker Agent
+  dependencies: string[];   // 依赖的子任务ID（可选）
+  params?: Record<string, unknown>;  // 任务参数（可选）
+  status: 'pending' | 'running' | 'completed' | 'failed';
+}
+
+/**
+ * 任务执行结果
+ */
+export interface TaskResult {
+  taskId: string;
+  success: boolean;
+  data?: unknown;
+  error?: string;
+}
+
+/**
+ * Planner规划结果
+ */
+export interface PlannerResult {
+  subtasks: SubTask[];      // 子任务列表
+  reasoning: string;        // 规划理由
+}
+
+// ============ Supervisor Types ============
+
+/**
+ * 执行上下文
+ */
+export interface ExecutionContext {
+  taskId: string;
+  subtasks: SubTask[];
+  results: TaskResult[];
+  currentTaskIndex: number;
+  maxRetries: number;
 }
 
 // ============ Memory Types ============

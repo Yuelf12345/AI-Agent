@@ -100,51 +100,6 @@ tool:
 
 ### 3.2 Agent 设计
 
-采用 ReAct + Plan-and-Solve 混合模式：
-
-```
-用户输入 ──▶ Intent Router ──┬──▶ 简单任务 ──▶ 单 Tool 执行
-                             │
-                             └──▶ 复杂任务 ──▶ Planning Agent
-                                                   │
-                             ┌─────────────────────┘
-                             ▼
-                        ┌─────────────┐
-                        │ 分解为子任务  │
-                        └──────┬──────┘
-                               │
-                   ┌───────────┼───────────┐
-                   ▼           ▼           ▼
-              ┌───────┐   ┌───────┐   ┌───────┐
-              │Task 1 │   │Task 2 │   │Task 3 │
-              └───┬───┘   └───┬───┘   └───┬───┘
-                  │           │           │
-                  └───────────┼───────────┘
-                              ▼
-                        ┌─────────────┐
-                        │ 结果汇总输出  │
-                        └─────────────┘
-```
-
-Agent 状态机：
-
-```yaml
-states:
-  - IDLE          # 等待输入
-  - PLANNING      # 规划阶段
-  - EXECUTING     # 执行 Tool
-  - OBSERVING     # 观察结果
-  - RESPONDING    # 生成回复
-  - WAITING_HUMAN # 等待人工确认
-
-transitions:
-  IDLE -> PLANNING: 收到用户输入
-  PLANNING -> EXECUTING: 定执行计划
-  EXECUTING -> OBSERVING: Tool 返回结果
-  OBSERVING -> EXECUTING: 需要继续执行
-  OBSERVING -> RESPONDING: 任务完成
-  EXECUTING -> WAITING_HUMAN: 需要确认（如删除文件）
-```
 
 ### 3.3 Skills 规则系统
 
@@ -490,66 +445,6 @@ Query: { q: string, tags?: string[] }
 
 ### 10.1 多 Agent 协作
 
-#### 10.1.1 核心概念
-
-| 概念 | 说明 |
-|------|------|
-| **ReAct 模式** | Reasoning → Acting → Observing 循环，先思考再行动 |
-| **Intent Router** | 识别用户意图，分发到不同 Agent 处理 |
-| **Planning Agent** | 复杂任务分解为子任务，协调多 Agent 并行执行 |
-| **LangGraph StateGraph** | 状态机编排多 Agent 流程，定义状态节点与转换边 |
-
-#### 10.1.2 Agent 状态机设计
-
-```
-┌─────────┐     用户输入      ┌─────────┐
-│  IDLE   │ ───────────────▶ │ROUTING  │
-└─────────┘                  └────┬────┘
-     ▲                            │
-     │                       ┌────┴────┐
-     │                       ▼         ▼
-     │                 ┌─────────┐ ┌─────────┐
-     │                 │SIMPLE   │ │PLANNING │
-     │                 │AGENT    │ │AGENT    │
-     │                 └────┬────┘ └────┬────┘
-     │                      │           │
-     │                      ▼           ▼
-     │                 ┌─────────────────┐
-     │                 │   EXECUTING     │
-     │                 │   (Tool 调用)    │
-     │                 └────────┬────────┘
-     │                          │
-     │                          ▼
-     │                 ┌─────────────────┐
-     └─────────────────│   RESPONDING    │
-                       └─────────────────┘
-```
-
-#### 10.1.3 实现路径
-
-```
-src/harness/agent/
-├── index.ts        # Agent 主类，协调各组件
-├── react.ts        # ReAct 循环实现
-├── planner.ts      # 任务规划器（复杂任务分解）
-├── router.ts       # 意图路由器（简单/复杂任务分发）
-└── state.ts        # 状态定义与转换逻辑
-```
-
-#### 10.1.4 关键代码参考
-
-| 文件 | 说明 |
-|------|------|
-| `LangChain/src/templates/s11_autonomous_agents.ts` | 单 Agent 基础实现 |
-| `LangChain/src/templates/10.teams_protocols.ts` | 多 Agent 协作示例（消息传递） |
-| `LangChain/src/templates/s12_worktree_task_isolation.ts` | 任务隔离与并行执行 |
-
-#### 10.1.5 学习资源
-
-- [LangGraph.js 官方文档](https://langchain-ai.github.io/langgraphjs/)
-- [LangChain.js Agent 指南](https://js.langchain.com/docs/how_to/agents)
-
----
 
 ### 10.2 Memory 管理
 
