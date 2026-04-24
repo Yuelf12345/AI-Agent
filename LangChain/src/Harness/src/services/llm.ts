@@ -5,7 +5,7 @@ import {
   AIMessage,
   SystemMessage,
 } from "@langchain/core/messages";
-import { config } from "../config/index.js";
+import { config } from "../config/index.ts";
 
 export type LLMProvider = "openai" | "ollama";
 

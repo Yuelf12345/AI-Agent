@@ -13,4 +13,4 @@
 // import "./src/demo/9.teams.ts"
 // import "./src/demo/10.teams_protocols.ts"
 // import "./src/claudeCode/s12_worktree_task_isolation.js"
-import './src/Harness /src/agents/index.ts'
+import './src/Harness/src/agents/index.ts'
