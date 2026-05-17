@@ -2,6 +2,7 @@
 export { BaseAgent } from "./baseAgent.ts";
 export { MainAgent } from "./mainAgent.ts";
 export { SimpleAgent } from "./simpleAgent.ts";
+export { ReActAgent } from "./reactAgent.ts";
 
 // 旧组件（已废弃，后续删除）
 export { Router } from "./router.ts";

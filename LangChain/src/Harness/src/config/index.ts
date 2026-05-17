@@ -18,6 +18,7 @@ export interface Config {
       apiKey: string;
       model: string;
       embeddingModel: string;
+      baseUrl: string;
     };
   };
   storage: {
@@ -51,7 +52,7 @@ export const config: Config = {
     host: process.env.HOST || 'localhost',
   },
   llm: {
-    provider: (process.env.LLM_PROVIDER as 'ollama' | 'openai') || 'ollama',
+    provider: (process.env.LLM_PROVIDER as 'ollama' | 'openai') || 'openai',
     ollama: {
       baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
       model: process.env.OLLAMA_MODEL || 'llama3.2',
@@ -60,7 +61,8 @@ export const config: Config = {
     openai: {
       apiKey: process.env.OPENAI_API_KEY || '',
       model: process.env.OPENAI_MODEL || 'qwen-plus',
-      embeddingModel: process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small',
+      embeddingModel: process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-v3',
+      baseUrl: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
     },
   },
   storage: {

@@ -14,4 +14,10 @@
 // import "./src/demo/10.teams_protocols.ts"
 // import "./src/claudeCode/s12_worktree_task_isolation.js"
 // import './src/Harness/src/harness/agents/index.ts'
-import './src/Harness/test-simple-agent.ts'
+// import './src/Harness/test/test-simple.ts'
+// import './src/Harness/test/test-react.ts'
+// import './src/Harness/test/test-rag.ts'
+// import "./src/Harness/test/test-embedding-quick.ts"
+// import './src/Harness/test/test-memory.ts'
+// import './src/Harness/test/test-rag-enhanced.ts'
+import './src/Harness/test/test-observability.ts'

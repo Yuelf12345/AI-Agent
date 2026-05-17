@@ -27,7 +27,7 @@ export interface Task {
 }
 
 // ============ Conversation Types ============
-export type MessageRole = 'user' | 'assistant' | 'tool';
+export type MessageRole = 'system' | 'user' | 'assistant' | 'tool';
 
 export interface ToolCall {
   tool: string;
@@ -270,7 +270,7 @@ export const ChatRequestSchema = z.object({
 
 export const ToolInvokeRequestSchema = z.object({
   tool_name: z.string(),
-  parameters: z.record(),
+  parameters: z.record(z.string(), z.any()),
 });
 
 export const NoteSearchRequestSchema = z.object({

@@ -124,18 +124,18 @@ const prompt = ChatPromptTemplate.fromTemplate(
 // ChromaDB 服务器未启动 该用测试方案
 // const retriever = vectorStore.asRetriever();
 
-import { MemoryVectorStore } from "@langchain/classic/vectorstores/memory";
-import {docSplits} from "./3.RAG.ts";
-const memoryVectorStore = await MemoryVectorStore.fromDocuments(docSplits, embeddings);
-const memoryRetriever = memoryVectorStore.asRetriever();
+// import { MemoryVectorStore } from "@langchain/classic/vectorstores/memory";
+// import {docSplits} from "./3.RAG.ts";
+// const memoryVectorStore = await MemoryVectorStore.fromDocuments(docSplits, embeddings);
+// const memoryRetriever = memoryVectorStore.asRetriever();
 
-const chain = prompt
-  .pipe(model)
-  .pipe(new StringOutputParser());
+// const chain = prompt
+//   .pipe(model)
+//   .pipe(new StringOutputParser());
 
-const result = await chain.invoke({
-  context: await memoryRetriever.invoke("query"),
-  question: "query",
-});
+// const result = await chain.invoke({
+//   context: await memoryRetriever.invoke("query"),
+//   question: "query",
+// });
 
-console.log('result', result);
+// console.log('result', result);

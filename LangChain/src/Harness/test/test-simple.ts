@@ -1,4 +1,4 @@
-import { SimpleAgent } from "./src/harness/agents/simpleAgent.ts";
+import { SimpleAgent } from "../src/harness/agents/simpleAgent.ts";
 
 /**
  * SimpleAgent测试脚本
