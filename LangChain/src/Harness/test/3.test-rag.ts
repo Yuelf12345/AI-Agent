@@ -190,7 +190,8 @@ async function main() {
   await rag.reset();  // 先删除 collection 再重新索引
   await rag.initialize();
   await rag.indexDocuments(SAMPLE_DOCUMENTS);
-  console.log("索引完成，文档数量:", await rag.getDocumentCount());
+  console.log("索引完成，文档数量:", await rag.getDocumentCount(), "\n");
+  
 
   // ---- Step 4: Retrieval ----
   console.log("📚 Step 4: Retrieval — 如何检索相关文档");
@@ -211,12 +212,13 @@ async function main() {
   //   console.log(r.document.pageContent.slice(0, 50), "score:", r.finalScore, "source:", r.source);
   // });
 
-  // // 混合检索（推荐）
-  // console.log("\n--- 混合检索（推荐） ---");
-  // const hybridResults = await rag.retrieve("检索增强生成", "hybrid");
-  // hybridResults.forEach(r => {
-  //   console.log(r.document.pageContent.slice(0, 50), "score:", r.finalScore, "source:", r.source);
-  // });
+  // 混合检索（推荐）
+  console.log("\n--- 混合检索（推荐） ---");
+  const hybridResults = await rag.retrieve("检索增强生成", "hybrid");
+  hybridResults.forEach(r => {
+    console.log(r.document.pageContent.slice(0, 50), "score:", r.finalScore, "source:", r.source);
+  });
+  console.log("\n");
   // ---- Step 5: Generation ----
   console.log("📚 Step 5: Generation — LLM 基于检索结果生成回答");
   console.log("-------------------------------------------");
