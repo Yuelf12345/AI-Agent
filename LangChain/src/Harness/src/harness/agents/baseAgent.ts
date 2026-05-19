@@ -1,5 +1,5 @@
 import { llmService } from "../../services/llm.ts";
-import { ToolRegistry, toolRegistry } from "../tools/registry.ts";
+import { HarnessToolRegistry, harnessToolRegistry } from "../tools/registry.ts";
 import { AgentState, type AgentConfig} from "../../types/index.ts";
 import { SystemMessage } from "@langchain/core/messages";
 
@@ -11,7 +11,7 @@ abstract class BaseAgent {
   protected id: string;
   protected name: string;
   protected state: AgentState;
-  protected registry: ToolRegistry;
+  protected registry: HarnessToolRegistry;
   protected llm: any;
   protected logger: Console;
   protected systemPrompt: string;
@@ -20,14 +20,14 @@ abstract class BaseAgent {
     this.id = config.id;
     this.name = config.name;
     this.state = AgentState.IDLE;
-    this.registry = new ToolRegistry();
+    this.registry = new HarnessToolRegistry();
     this.logger = console;
     this.llm = config.llm || llmService.getModel();
     this.systemPrompt = config.systemPrompt || '';
 
     // 从全局registry复制指定工具
     config.toolNames?.forEach((name: string) => {
-      const tool = toolRegistry.get(name);
+      const tool = harnessToolRegistry.get(name);
       if (tool) {
         this.registry.register(tool);
       }
@@ -64,7 +64,7 @@ abstract class BaseAgent {
    * 调用工具
    */
   protected async callTool(toolName: string, params: any): Promise<string> {
-    return await this.registry.invoke({ name: toolName, args: params });
+    return await this.registry.invokeCompat({ name: toolName, args: params });
   }
 
   /**

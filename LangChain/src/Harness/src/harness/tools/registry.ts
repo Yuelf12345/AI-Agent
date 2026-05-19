@@ -1,26 +1,46 @@
+/**
+ * HarnessToolRegistry - 统一工具注册器
+ *
+ * 合并了旧 ToolRegistry（分类、描述、args 接口）和
+ * EnhancedToolRegistry（Retry/Timeout/Cache）的所有功能。
+ *
+ * 这是 Harness Agent 的唯一工具注册入口。
+ *
+ * 使用方式：
+ *   import { harnessToolRegistry } from "./registry.ts";
+ *
+ *   // 调用工具（两种参数格式兼容）
+ *   await harnessToolRegistry.invoke({ name: "read_file", args: { filePath: "test.txt" } });
+ *   await harnessToolRegistry.invoke({ name: "read_file", parameters: { filePath: "test.txt" } });
+ *
+ *   // 获取工具描述（用于 LLM System Prompt）
+ *   harnessToolRegistry.getDescriptions();
+ */
+
 import { StructuredTool } from "@langchain/core/tools";
 import { BaseTool } from "./baseTool.ts";
+import { EnhancedToolRegistry, type ToolCallConfig } from "./enhancedTool.ts";
 import { FileReadTool, FileWriteTool, FileEditTool, BashTool } from "./fileTool.ts";
 
 /**
- * 工具注册表
- * 统一管理所有工具的注册、发现和调用
+ * 统一工具注册器
+ *
+ * 基于 EnhancedToolRegistry，增加旧 ToolRegistry 的功能：
+ *   - 分类索引（category）
+ *   - 工具描述列表（getDescriptions，用于 System Prompt）
+ *   - invoke 兼容两种参数格式（args / parameters）
  */
-class ToolRegistry {
-  private tools: Map<string, BaseTool<any>> = new Map();
+export class HarnessToolRegistry extends EnhancedToolRegistry {
   private categories: Map<string, string[]> = new Map();
 
   /**
-   * 注册单个工具
+   * 注册工具及其增强配置
+   * 同时维护分类索引
    */
-  register(tool: BaseTool<any>): void {
-    if (this.tools.has(tool.name)) {
-      throw new Error(`Tool "${tool.name}" already registered`);
-    }
+  override register(tool: BaseTool<any>, config?: ToolCallConfig): void {
+    super.register(tool, config);
 
-    this.tools.set(tool.name, tool);
-
-    // 按分类索引
+    // 维护分类索引
     const category = tool.toolMetadata.category;
     if (!this.categories.has(category)) {
       this.categories.set(category, []);
@@ -31,15 +51,25 @@ class ToolRegistry {
   /**
    * 批量注册工具
    */
-  registerAll(tools: BaseTool<any>[]): void {
-    tools.forEach((tool) => this.register(tool));
+  override registerAll(tools: BaseTool<any>[], defaultConfig?: ToolCallConfig): void {
+    for (const tool of tools) {
+      this.register(tool, defaultConfig);
+    }
   }
 
   /**
-   * 获取工具
+   * 增强版工具调用（兼容 args 和 parameters 两种格式）
+   *
+   * 旧格式: { name, args }
+   * 新格式: { name, parameters }
    */
-  get(name: string): BaseTool<any> | undefined {
-    return this.tools.get(name);
+  async invokeCompat(toolCall: {
+    name: string;
+    args?: Record<string, any>;
+    parameters?: Record<string, any>;
+  }): Promise<string> {
+    const params = toolCall.args ?? toolCall.parameters ?? {};
+    return super.invoke({ name: toolCall.name, parameters: params });
   }
 
   /**
@@ -47,21 +77,23 @@ class ToolRegistry {
    */
   getByCategory(category: string): BaseTool<any>[] {
     const names = this.categories.get(category) || [];
-    return names.map((n) => this.tools.get(n)!).filter(Boolean);
+    return names
+      .map((n) => this.get(n))
+      .filter((t): t is BaseTool<any> => t !== undefined);
   }
 
   /**
    * 获取所有工具（LangChain 兼容格式）
    */
-  getAllTools(): StructuredTool[] {
-    return Array.from(this.tools.values());
+  getAllStructuredTools(): StructuredTool[] {
+    return this.getAllTools() as unknown as StructuredTool[];
   }
 
   /**
    * 获取工具描述列表（用于 System Prompt）
    */
   getDescriptions(category?: string): string {
-    let tools = Array.from(this.tools.values());
+    let tools = this.getAllTools();
 
     if (category) {
       tools = this.getByCategory(category);
@@ -83,25 +115,10 @@ class ToolRegistry {
   }
 
   /**
-   * 执行工具调用
-   */
-  async invoke(toolCall: {
-    name: string;
-    args: Record<string, any>;
-  }): Promise<string> {
-    const tool = this.tools.get(toolCall.name);
-    if (!tool) {
-      return `Error: Unknown tool "${toolCall.name}". Available: ${Array.from(this.tools.keys()).join(", ")}`;
-    }
-
-    return tool.call(toolCall.args);
-  }
-
-  /**
    * 列出所有工具名
    */
   list(): string[] {
-    return Array.from(this.tools.keys());
+    return this.getAllTools().map((t) => t.name);
   }
 
   /**
@@ -112,15 +129,47 @@ class ToolRegistry {
   }
 }
 
-// 全局单例
-export const toolRegistry = new ToolRegistry();
+// ==================== 全局单例 + 预注册基础工具 ====================
 
-// 自动注册基础工具
-toolRegistry.registerAll([
-  new FileReadTool(),
-  new FileWriteTool(),
-  new FileEditTool(),
-  new BashTool(),
-]);
+/**
+ * 全局统一工具注册器
+ *
+ * 预注册了基础工具及其增强配置：
+ *   - read_file: 缓存 30s, 超时 10s
+ *   - write_file: 重试 2次, 超时 15s
+ *   - file_edit:  重试 2次, 超时 15s
+ *   - bash:       超时 30s（危险操作，不缓存）
+ */
+export const harnessToolRegistry = new HarnessToolRegistry();
 
-export { ToolRegistry };
+harnessToolRegistry.register(new FileReadTool(), {
+  timeout: { timeoutMs: 10000 },
+  enableCache: true,
+  cache: { ttlMs: 30000 },
+});
+
+harnessToolRegistry.register(new FileWriteTool(), {
+  timeout: { timeoutMs: 15000 },
+  retry: { maxRetries: 2 },
+});
+
+harnessToolRegistry.register(new FileEditTool(), {
+  timeout: { timeoutMs: 15000 },
+  retry: { maxRetries: 2 },
+});
+
+harnessToolRegistry.register(new BashTool(), {
+  timeout: { timeoutMs: 30000 },
+});
+
+/**
+ * @deprecated 使用 harnessToolRegistry 代替
+ * 保留旧名以兼容现有代码，后续版本将移除
+ */
+export const toolRegistry = harnessToolRegistry;
+
+/**
+ * @deprecated 使用 HarnessToolRegistry 代替
+ * 保留旧名以兼容现有代码，后续版本将移除
+ */
+export { HarnessToolRegistry as ToolRegistry };

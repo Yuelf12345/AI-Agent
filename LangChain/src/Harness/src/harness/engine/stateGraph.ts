@@ -11,7 +11,7 @@
 
 import { StateSchema } from "./state.ts";
 import type { GraphNode, NodeConfig, NodeDefinition } from "./node.ts";
-import { Command, InterruptSignal } from "./command.ts";
+import { Command, InterruptSignal, RESUME_VALUE_KEY, INTERRUPT_TYPE_KEY } from "./command.ts";
 import type { InterruptRequest } from "./command.ts";
 import { EdgeType } from "./edge.ts";
 import type { EdgeDefinition, ConditionalRouter } from "./edge.ts";
@@ -26,9 +26,9 @@ import { START, END } from "./edge.ts";
  */
 export interface Checkpointer {
   /** 保存检查点 */
-  save(threadId: string, state: Record<string, any>, nodeId: string): Promise<void>;
+  save(threadId: string, state: Record<string, any>, nodeId: string, interruptType?: string | undefined): Promise<void>;
   /** 加载检查点 */
-  load(threadId: string): Promise<{ state: Record<string, any>; nodeId: string } | null>;
+  load(threadId: string): Promise<{ state: Record<string, any>; nodeId: string; interruptType?: string | undefined } | null>;
   /** 删除检查点 */
   delete(threadId: string): Promise<void>;
   /** 列出可用的线程 ID */
@@ -39,13 +39,13 @@ export interface Checkpointer {
  * MemoryCheckpointer - 内存实现（开发用）
  */
 export class MemoryCheckpointer implements Checkpointer {
-  private checkpoints: Map<string, { state: Record<string, any>; nodeId: string }> = new Map();
+  private checkpoints: Map<string, { state: Record<string, any>; nodeId: string; interruptType?: string | undefined }> = new Map();
 
-  async save(threadId: string, state: Record<string, any>, nodeId: string): Promise<void> {
-    this.checkpoints.set(threadId, { state: JSON.parse(JSON.stringify(state)), nodeId });
+  async save(threadId: string, state: Record<string, any>, nodeId: string, interruptType?: string | undefined): Promise<void> {
+    this.checkpoints.set(threadId, { state: JSON.parse(JSON.stringify(state)), nodeId, interruptType });
   }
 
-  async load(threadId: string): Promise<{ state: Record<string, any>; nodeId: string } | null> {
+  async load(threadId: string): Promise<{ state: Record<string, any>; nodeId: string; interruptType?: string | undefined } | null> {
     return this.checkpoints.get(threadId) || null;
   }
 
@@ -236,7 +236,7 @@ export class CompiledGraph<TState extends Record<string, any> = Record<string, a
 
       // interruptBefore: 执行前暂停
       if (nodeDef.config?.interruptBefore) {
-        await this.checkpointer.save(threadId, state, currentNode);
+        await this.checkpointer.save(threadId, state, currentNode, "interrupt_before");
         return {
           ...state,
           status: "paused",
@@ -256,7 +256,7 @@ export class CompiledGraph<TState extends Record<string, any> = Record<string, a
       } catch (error) {
         // 处理 InterruptSignal
         if (error instanceof InterruptSignal) {
-          await this.checkpointer.save(threadId, state, currentNode);
+          await this.checkpointer.save(threadId, state, currentNode, "interrupt_signal");
           return {
             ...state,
             status: "paused",
@@ -285,7 +285,7 @@ export class CompiledGraph<TState extends Record<string, any> = Record<string, a
 
       // interruptAfter: 执行后暂停
       if (nodeDef.config?.interruptAfter) {
-        await this.checkpointer.save(threadId, state, currentNode);
+        await this.checkpointer.save(threadId, state, currentNode, "interrupt_after");
         return {
           ...state,
           status: "paused",
@@ -306,6 +306,14 @@ export class CompiledGraph<TState extends Record<string, any> = Record<string, a
 
   /**
    * 中断后恢复执行
+   *
+   * 根据中断类型决定恢复策略：
+   *   - interrupt_before：节点未执行过 → 注入 resumeValue 后执行节点
+   *   - interrupt_after：节点已执行完毕 → 不重执行，直接继续下一个节点
+   *   - interrupt_signal：节点内部 interrupt() 抛出 → 注入 resumeValue 后重新执行节点
+   *
+   * resumeValue 通过 state.__resumeValue__ 传递给节点函数，
+   * 节点函数应先检查此字段，跳过 interrupt() 调用。
    */
   private async _resumeFromInterrupt(
     threadId: string,
@@ -318,36 +326,63 @@ export class CompiledGraph<TState extends Record<string, any> = Record<string, a
 
     let state = checkpoint.state as TState;
     let currentNode = checkpoint.nodeId;
-    const nodeDef = this.nodes.get(currentNode);
+    const interruptType = checkpoint.interruptType || "interrupt_signal";
 
+    const nodeDef = this.nodes.get(currentNode);
     if (!nodeDef) {
       throw new Error(`检查点中的节点 "${currentNode}" 未找到`);
     }
 
-    // 恢复：重新执行当前节点
-    // interrupt() 调用将返回 resumeValue
-    try {
-      const result = await nodeDef.fn(state);
+    // ---- 根据中断类型决定恢复策略 ----
 
-      // 合并恢复执行的更新
-      if (result && typeof result === "object" && !(result instanceof Command)) {
-        state = this.schema.applyUpdate(state, result as Record<string, any>) as TState;
+    let startNode: string;
+
+    if (interruptType === "interrupt_after") {
+      // 节点已执行完毕，恢复时跳过该节点，直接继续下一个
+      startNode = this._getNextNode(currentNode, state);
+      console.log(`[Resume] interrupt_after: 跳过节点 "${currentNode}", 从 "${startNode}" 继续`);
+    } else {
+      // interrupt_before 或 interrupt_signal：注入 resumeValue 后重新执行当前节点
+      // 注入 resumeValue 到状态，节点函数通过 state.__resumeValue__ 获取
+      state = { ...state, [RESUME_VALUE_KEY]: resumeValue } as TState;
+      console.log(`[Resume] ${interruptType}: 注入 __resumeValue__, 重新执行节点 "${currentNode}"`);
+
+      try {
+        const result = await nodeDef.fn(state);
+
+        // 合并恢复执行的更新
+        if (result instanceof Command && result.isGoto()) {
+          startNode = result.goto!;
+        } else if (result instanceof Command && result.isResume()) {
+          console.warn("[Resume] 节点返回了 resume Command，忽略");
+          startNode = this._getNextNode(currentNode, state);
+        } else if (result && typeof result === "object" && !(result instanceof Command)) {
+          // 清除 __resumeValue__，不再需要
+          const cleanResult = { ...result };
+          delete cleanResult[RESUME_VALUE_KEY];
+          state = this.schema.applyUpdate(state, cleanResult as Record<string, any>) as TState;
+          // 清除状态中的 __resumeValue__
+          delete (state as any)[RESUME_VALUE_KEY];
+          startNode = this._getNextNode(currentNode, state);
+        } else {
+          startNode = this._getNextNode(currentNode, state);
+        }
+      } catch (error) {
+        // 如果再次调用 interrupt，则产生新的中断
+        if (error instanceof InterruptSignal) {
+          await this.checkpointer.save(threadId, state, currentNode, "interrupt_signal");
+          return {
+            ...state,
+            status: "paused",
+            __interrupt__: [error.toInterruptRequest(currentNode)],
+          } as unknown as TState & { __interrupt__?: InterruptRequest[] };
+        }
+        throw error;
       }
-    } catch (error) {
-      // 如果再次调用 interrupt，则产生新的中断
-      if (error instanceof InterruptSignal) {
-        await this.checkpointer.save(threadId, state, currentNode);
-        return {
-          ...state,
-          status: "paused",
-          __interrupt__: [error.toInterruptRequest(currentNode)],
-        } as unknown as TState & { __interrupt__?: InterruptRequest[] };
-      }
-      throw error;
     }
 
-    // 恢复后继续执行
-    let nextNode = this._getNextNode(currentNode, state);
+    // 恢复后继续执行后续节点
+    let nextNode = startNode;
     let iteration = (state as any).iteration ?? 0;
 
     while (nextNode !== END) {
@@ -367,6 +402,19 @@ export class CompiledGraph<TState extends Record<string, any> = Record<string, a
 
       state = { ...state, currentStep: nextNode, iteration };
 
+      // interruptBefore: 执行前暂停（恢复时也可能遇到新的中断）
+      if (nextDef.config?.interruptBefore) {
+        await this.checkpointer.save(threadId, state, nextNode, "interrupt_before");
+        return {
+          ...state,
+          status: "paused",
+          __interrupt__: [{
+            node: nextNode,
+            value: { reason: "interrupt_before", state: this._sanitizeForInterrupt(state) },
+          }],
+        } as unknown as TState & { __interrupt__?: InterruptRequest[] };
+      }
+
       try {
         const nextResult = await nextDef.fn(state);
 
@@ -380,7 +428,7 @@ export class CompiledGraph<TState extends Record<string, any> = Record<string, a
         }
       } catch (error) {
         if (error instanceof InterruptSignal) {
-          await this.checkpointer.save(threadId, state, nextNode);
+          await this.checkpointer.save(threadId, state, nextNode, "interrupt_signal");
           return {
             ...state,
             status: "paused",
@@ -388,6 +436,19 @@ export class CompiledGraph<TState extends Record<string, any> = Record<string, a
           } as unknown as TState & { __interrupt__?: InterruptRequest[] };
         }
         throw error;
+      }
+
+      // interruptAfter: 执行后暂停
+      if (nextDef.config?.interruptAfter) {
+        await this.checkpointer.save(threadId, state, nextNode, "interrupt_after");
+        return {
+          ...state,
+          status: "paused",
+          __interrupt__: [{
+            node: nextNode,
+            value: { reason: "interrupt_after", state: this._sanitizeForInterrupt(state) },
+          }],
+        } as unknown as TState & { __interrupt__?: InterruptRequest[] };
       }
 
       nextNode = this._getNextNode(nextNode, state);

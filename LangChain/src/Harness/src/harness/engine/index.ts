@@ -17,7 +17,7 @@ export { EdgeType, START, END } from "./edge.ts";
 export type { ConditionalRouter, EdgeDefinition } from "./edge.ts";
 
 // 命令
-export { Command, InterruptSignal, interrupt, waitForApproval, waitForInput } from "./command.ts";
+export { Command, InterruptSignal, interrupt, waitForApproval, waitForInput, RESUME_VALUE_KEY, INTERRUPT_TYPE_KEY } from "./command.ts";
 export type { InterruptRequest } from "./command.ts";
 
 // 图

@@ -2,7 +2,31 @@
  * Command - 图执行控制指令
  *
  * 提供控制流机制：goto（跳转）、resume（恢复）、interrupt（中断）
+ *
+ * 中断/恢复机制设计（借鉴 LangGraph）:
+ *   - interrupt() 在节点内暂停执行，抛出 InterruptSignal
+ *   - 恢复时，resumeValue 通过 state.__resumeValue__ 传递给节点
+ *   - 节点函数应先检查 state.__resumeValue__，有值则跳过 interrupt() 调用
  */
+
+/**
+ * 内部状态键 - 恢复值传递
+ *
+ * 当使用 Command.resume(value) 恢复执行时，
+ * resumeValue 会注入到 state.__resumeValue__ 中。
+ * 节点函数通过检查此字段获取恢复值。
+ */
+export const RESUME_VALUE_KEY = "__resumeValue__";
+
+/**
+ * 内部状态键 - 中断类型标记
+ *
+ * 用于 _resumeFromInterrupt 区分中断类型，决定恢复策略:
+ *   - "interrupt_before"：节点未执行，恢复时需执行节点
+ *   - "interrupt_after"：节点已执行完毕，恢复时跳过节点
+ *   - "interrupt_signal"：节点内部 interrupt() 抛出，恢复时注入 resumeValue 后重新执行
+ */
+export const INTERRUPT_TYPE_KEY = "__interruptType__";
 
 /**
  * InterruptRequest - 图执行中断时生成的请求
@@ -123,11 +147,36 @@ export class InterruptSignal {
 export function interrupt<T = any>(info: any): T {
   // 此函数在运行时由 StateGraph 执行器处理
   // 实际不会正常执行 - 而是抛出中断信号
+  //
+  // 恢复模式：当 graph.invoke(Command.resume(value)) 时，
+  // resumeValue 会注入到 state.__resumeValue__ 中。
+  // 节点函数应按以下模式使用 interrupt():
+  //
+  //   async function approvalNode(state) {
+  //     // 恢复模式：检查 __resumeValue__
+  //     if (state.__resumeValue__ !== undefined) {
+  //       const decision = state.__resumeValue__;
+  //       // 使用 decision 继续处理...
+  //     } else {
+  //       // 新调用：触发中断
+  //       const decision = interrupt({ question: "是否批准？" });
+  //       // interrupt() 抛出 InterruptSignal，此行不会执行
+  //     }
+  //   }
   throw new InterruptSignal(info);
 }
 
 /**
  * waitForApproval - 审批流程便捷函数
+ *
+ * @param action - 待审批的操作名称
+ * @param details - 操作详情
+ */
+/**
+ * waitForApproval - 审批流程便捷函数
+ *
+ * 重要：恢复时不再调用此函数！
+ * 节点应先检查 state.__resumeValue__ 获取审批结果。
  *
  * @param action - 待审批的操作名称
  * @param details - 操作详情
@@ -143,6 +192,15 @@ export function waitForApproval(action: string, details: any): boolean {
 
 /**
  * waitForInput - 用户输入便捷函数
+ *
+ * @param prompt - 向用户提出的问题
+ * @param defaultValue - 可选的默认值
+ */
+/**
+ * waitForInput - 用户输入便捷函数
+ *
+ * 重要：恢复时不再调用此函数！
+ * 节点应先检查 state.__resumeValue__ 获取用户输入。
  *
  * @param prompt - 向用户提出的问题
  * @param defaultValue - 可选的默认值

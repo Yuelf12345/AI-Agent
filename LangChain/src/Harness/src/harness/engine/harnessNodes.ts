@@ -4,19 +4,22 @@
  * 将已有的 Agent 实现包装为 StateGraph 可用的节点函数。
  */
 
-import { Command, interrupt } from "./command.ts";
+import { Command, interrupt, RESUME_VALUE_KEY } from "./command.ts";
 import { END } from "./edge.ts";
-import { toolRegistry } from "../tools/registry.ts";
+import { harnessToolRegistry } from "../tools/registry.ts";
 import { SimpleAgent } from "../agents/simpleAgent.ts";
 import { ReActAgent } from "../agents/reactAgent.ts";
-import { MainAgent } from "../agents/mainAgent.ts";
+import { Router } from "../agents/router.ts";
+import { approvalGate } from "../hitl/approval.ts";
 
 /**
  * 路由节点 - 任务分类
  *
- * 分析用户输入并确定：
- *   - taskType: "simple" | "complex"
- *   - plan: 来自 MainAgent 的执行计划
+ * 使用真实的 Router 类分析用户输入并确定：
+ *   - taskType: "simple" | "complex"（来自 LLM 判断）
+ *   - reasoning: 判断理由
+ *   - targetAgent: 目标 Agent 名称
+ *   - confidence: 置信度
  */
 export async function routerNode(state: any): Promise<Partial<any>> {
   const lastMessage = state.messages?.[state.messages.length - 1]?.content || "";
@@ -24,35 +27,41 @@ export async function routerNode(state: any): Promise<Partial<any>> {
   if (!lastMessage) {
     return {
       taskType: "simple",
+      reasoning: "无输入，默认简单任务",
       currentStep: "router",
     };
   }
 
   try {
-    const agent = new MainAgent();
-    // analyzeTask 是私有方法，使用 execute 替代
-    const result = await agent.execute(lastMessage);
+    // 使用真实的 Router 类进行任务分类
+    const router = new Router();
+    const result = await router.route(lastMessage);
+
+    console.log(`[RouterNode] taskType=${result.taskType}, reasoning=${result.reasoning}, confidence=${result.confidence}`);
 
     return {
-      taskType: "simple", // 默认简化处理
-      plan: result,
+      taskType: result.taskType,
+      reasoning: result.reasoning,
+      targetAgent: result.targetAgent,
+      confidence: result.confidence,
       currentStep: "router",
     };
   } catch (error) {
     console.error("[RouterNode] 错误:", error);
     return {
-      taskType: "simple",  // 错误时默认使用简单模式
-      error: String(error),
+      taskType: "complex",  // 错误时默认使用复杂模式（更安全）
+      reasoning: `路由失败: ${error}`,
       currentStep: "router",
     };
   }
 }
 
 /**
- * 简单 Agent 节点 - 单次 LLM 调用
+ * 简单 Agent 节点 - 单次 LLM 调用（注入 Memory + RAG 上下文）
  *
  * 用于可以在一轮完成的简单任务。
- * 返回直接响应或工具调用结果。
+ * 将 state.memoryContext 和 state.ragContext 注入到输入中，
+ * 让 LLM 能够利用记忆和检索到的知识。
  */
 export async function simpleAgentNode(state: any): Promise<Partial<any>> {
   const lastMessage = state.messages?.[state.messages.length - 1]?.content || "";
@@ -64,9 +73,12 @@ export async function simpleAgentNode(state: any): Promise<Partial<any>> {
     };
   }
 
+  // 构造增强输入：注入 Memory + RAG 上下文
+  const enrichedInput = buildEnrichedInput(lastMessage, state);
+
   try {
     const agent = new SimpleAgent();
-    const result = await agent.execute(lastMessage);
+    const result = await agent.execute(enrichedInput);
 
     return {
       results: [result],
@@ -83,10 +95,11 @@ export async function simpleAgentNode(state: any): Promise<Partial<any>> {
 }
 
 /**
- * ReAct Agent 节点 - 多步推理循环
+ * ReAct Agent 节点 - 多步推理循环（注入 Memory + RAG 上下文）
  *
  * 用于需要多个推理步骤和工具调用的复杂任务。
  * 实现 Thought → Action → Observation 循环。
+ * 将 state.memoryContext 和 state.ragContext 注入到输入中。
  */
 export async function reactAgentNode(state: any): Promise<Partial<any> | Command> {
   const lastMessage = state.messages?.[state.messages.length - 1]?.content || "";
@@ -99,9 +112,12 @@ export async function reactAgentNode(state: any): Promise<Partial<any> | Command
     };
   }
 
+  // 构造增强输入：注入 Memory + RAG 上下文
+  const enrichedInput = buildEnrichedInput(lastMessage, state);
+
   try {
     const agent = new ReActAgent({ maxIterations });
-    const result = await agent.execute(lastMessage);
+    const result = await agent.execute(enrichedInput);
 
     // 检查是否达到最大迭代次数
     if (result.type === "react_max_iterations") {
@@ -137,6 +153,10 @@ export async function reactAgentNode(state: any): Promise<Partial<any> | Command
  * 在危险操作前暂停执行。
  * 向用户展示计划的操作并等待审批。
  *
+ * 恢复模式：当 graph.invoke(Command.resume(value)) 恢复时，
+ * resumeValue 通过 state.__resumeValue__ 传入。
+ * 节点函数先检查 __resumeValue__，有值则跳过 interrupt() 调用。
+ *
  * 使用方式：在图中添加此节点并设置 { interruptAfter: true }
  */
 export async function approvalNode(state: any): Promise<Partial<any> | Command> {
@@ -149,34 +169,88 @@ export async function approvalNode(state: any): Promise<Partial<any> | Command> 
     return new Command({ goto: END });
   }
 
-  // 检查此工具是否需要审批
-  const dangerousTools = ["file_write", "file_edit", "bash", "delete", "send"];
-  const needsApproval = dangerousTools.includes(pendingAction?.tool);
+  // 使用 ApprovalGate 检查是否需要审批
+  const needsApprovalResult = approvalGate.needsApproval(
+    pendingAction?.tool, pendingAction?.params || pendingAction?.parameters
+  );
 
-  if (!needsApproval) {
+  if (!needsApprovalResult) {
     // 不需要审批，继续执行
-    return new Command({ goto: "executeTool" });
+    return { approvalStatus: "approved", needsApproval: false };
   }
 
-  // 调用 interrupt 暂停并等待人工决策
-  const decision = interrupt({
-    type: "approval",
-    question: `是否执行 ${pendingAction.tool} 操作？`,
-    details: pendingAction,
-    warning: "此操作可能会修改或删除文件",
-  });
+  // ---- 恢复模式：检查 __resumeValue__ ----
+  if (state[RESUME_VALUE_KEY] !== undefined) {
+    const resumeValue = state[RESUME_VALUE_KEY];
 
-  // 此行不会执行，直到恢复
-  // decision 变量将是恢复传入的值（true/false）
-  if (decision === true) {
-    return new Command({ goto: "executeTool" });
-  } else {
+    // 处理 ApprovalDecision 对象
+    if (typeof resumeValue === "object" && resumeValue.decision) {
+      if (resumeValue.decision === "approved") {
+        return {
+          approvalStatus: "approved",
+          needsApproval: false,
+          modifiedParams: resumeValue.modifiedParams,
+          currentStep: "approval",
+        };
+      } else if (resumeValue.decision === "modified") {
+        // 用户修改了参数并批准
+        return {
+          approvalStatus: "approved",
+          needsApproval: false,
+          modifiedParams: resumeValue.modifiedParams,
+          currentStep: "approval",
+        };
+      }
+      // 拒绝
+      return {
+        approvalStatus: "rejected",
+        needsApproval: false,
+        results: [{ type: "rejected", reason: resumeValue.comment || "用户拒绝审批" }],
+        currentStep: "approval",
+      };
+    }
+
+    // 处理简单布尔值
+    if (resumeValue === true) {
+      return {
+        approvalStatus: "approved",
+        needsApproval: false,
+        currentStep: "approval",
+      };
+    }
+
+    // 拒绝
     return {
-      status: "rejected",
+      approvalStatus: "rejected",
+      needsApproval: false,
       results: [{ type: "rejected", reason: "用户拒绝审批" }],
       currentStep: "approval",
     };
   }
+
+  // ---- 新调用：触发中断 ----
+  // 创建审批请求
+  const approvalRequest = approvalGate.createRequest(
+    pendingAction.tool || pendingAction?.tool,
+    pendingAction.params || pendingAction?.parameters || {}
+  );
+
+  // 调用 interrupt 暂停并等待人工决策
+  // interrupt() 抛出 InterruptSignal，后续代码不会执行
+  interrupt({
+    type: "approval_request",
+    request: approvalRequest,
+    question: `是否执行 ${pendingAction.tool} 操作？`,
+    details: pendingAction,
+    warning: approvalGate.getRiskLevel(pendingAction.tool) === "critical"
+      ? "此操作可能会修改或删除关键文件"
+      : "此操作需要确认",
+  });
+
+  // 此行不会执行，直到恢复时通过 __resumeValue__ 处理
+  // interrupt() 抛出 InterruptSignal，理论上不会到达此处
+  // 但 TypeScript 无法推断 throw 会中断控制流，所以需要兜底 return
+  return { approvalStatus: "pending", currentStep: "approval" };
 }
 
 /**
@@ -193,7 +267,7 @@ export async function executeToolNode(state: any): Promise<Partial<any>> {
   }
 
   try {
-    const result = await toolRegistry.invoke({
+    const result = await harnessToolRegistry.invokeCompat({
       name: lastToolCall.tool,
       args: lastToolCall.params || {},
     });
@@ -230,6 +304,48 @@ export async function errorNode(state: any): Promise<Partial<any>> {
     }],
     currentStep: "error",
   };
+}
+
+/**
+ * 构造增强输入 - 将 Memory 和 RAG 上下文注入到用户输入中
+ *
+ * 格式：
+ *   [记忆上下文]
+ *   <memoryContext>
+ *
+ *   [知识检索]
+ *   <ragContext>
+ *
+ *   [用户问题]
+ *   <userMessage>
+ *
+ * 如果没有上下文，直接返回原始用户输入。
+ */
+function buildEnrichedInput(userMessage: string, state: any): string {
+  const sections: string[] = [];
+
+  if (state.memoryContext) {
+    sections.push(`[记忆上下文]\n${state.memoryContext}`);
+  }
+
+  if (state.ragContext) {
+    sections.push(`[知识检索]\n${state.ragContext}`);
+  }
+
+  if (state.relevantKnowledge?.length > 0) {
+    const knowledge = state.relevantKnowledge
+      .map((k: any) => `- (${k.source}, score: ${k.score?.toFixed(2) || "N/A"}) ${k.content}`)
+      .join("\n");
+    sections.push(`[相关知识]\n${knowledge}`);
+  }
+
+  if (sections.length === 0) {
+    return userMessage;
+  }
+
+  sections.push(`[用户问题]\n${userMessage}`);
+
+  return sections.join("\n\n");
 }
 
 /**

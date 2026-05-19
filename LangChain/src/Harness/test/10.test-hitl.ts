@@ -190,15 +190,25 @@ async function testStateGraphIntegration() {
     .addField("status", z.string())
     .addField("approved", z.boolean().nullable());
 
-  // 审批节点：使用 interrupt 等待人工决策
+  // 审批节点：使用 __resumeValue__ 模式获取人工决策
   const approvalNode = async (state: any) => {
+    const { RESUME_VALUE_KEY } = await import("../src/harness/engine/command.ts");
+
+    // 恢复模式：检查 __resumeValue__
+    if (state[RESUME_VALUE_KEY] !== undefined) {
+      const decision = state[RESUME_VALUE_KEY];
+      return { approved: decision, status: "reviewed" };
+    }
+
+    // 新调用：触发中断
     const { interrupt } = await import("../src/harness/engine/command.ts");
-    const decision = interrupt({
+    interrupt({
       type: "approval",
       toolName: state.action,
       question: `是否批准执行 ${state.action}？`,
     });
-    return { approved: decision, status: "reviewed" };
+    // interrupt() 抛出 InterruptSignal，此行不会执行
+    return { approved: false, status: "reviewed" };
   };
 
   // 执行节点：根据审批结果决定下一步

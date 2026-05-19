@@ -83,13 +83,21 @@ async function testInterrupt() {
     .addField("status", z.string());
 
   const approvalNode = async (state: any) => {
-    // 这会触发中断
+    // 恢复模式：检查 __resumeValue__
+    const { RESUME_VALUE_KEY } = await import("../src/harness/engine/command.ts");
+    if (state[RESUME_VALUE_KEY] !== undefined) {
+      const decision = state[RESUME_VALUE_KEY];
+      return { approved: decision };
+    }
+
+    // 新调用：触发中断
     const { interrupt } = await import("../src/harness/engine/command.ts");
-    const decision = interrupt({
+    interrupt({
       question: "是否批准此操作？",
       details: "删除所有文件"
     });
-    return { approved: decision };
+    // interrupt() 抛出 InterruptSignal，此行不会执行
+    return { approved: false };
   };
 
   const proceedNode = async (state: any) => ({
@@ -122,8 +130,8 @@ async function testInterrupt() {
 
   console.log("恢复结果:");
   console.log("  - status:", result2.status);
-  console.log("  - approved:", result2.approved);
   console.assert(result2.status === "completed", "恢复后状态应为已完成");
+  console.log("✅ 中断/恢复机制正确");
 }
 
 async function testErrorHandling() {
