@@ -1,6 +1,6 @@
-# Harness Agent Step 1-6 实现记录
+# Harness Agent Step 1-9 实现记录
 
-> 记录 Step 1 到 Step 6 的关键实现代码，涵盖 interrupt/resume 机制、Tool Registry 统一、Memory/RAG 接入、Router 改造、Agent 上下文注入。
+> 记录 Step 1 到 Step 9 的关键实现代码，涵盖 interrupt/resume 机制、Tool Registry 统一、Memory/RAG 接入、Router 改造、Agent 上下文注入、Observability、Graph 重构、Server 改造。
 
 ---
 
@@ -387,3 +387,286 @@ new StateSchema()
 | 5 | `engine/harnessNodes.ts` | 修改：`routerNode` 使用真实 `Router` |
 | 5 | `engine/harnessGraph.ts` | 修改：状态 Schema 增加 reasoning/confidence/targetAgent |
 | 6 | `engine/harnessNodes.ts` | 修改：`buildEnrichedInput()` + Agent 节点注入上下文 |
+
+---
+
+## Step 7: 接入 Observability
+
+### traceableNode (`observability/traceableNode.ts`)
+
+为所有 Harness 节点统一包装 Tracing + Metrics + Logger：
+
+```typescript
+export function traceableNode(nodeName: string, nodeFn: (state: any) => Promise<any>) {
+  return async (state: any) => {
+    // 1. Tracing：开始 Span
+    globalTracer.startSpan(`node.${nodeName}`, [{ key: "node.name", value: nodeName }]);
+
+    // 2. Metrics：计时 + 计数
+    const timer: TimerContext = globalMetrics.startTimer(`node.${nodeName}.latency`, { node: nodeName });
+    globalMetrics.incrementCounter(`node.${nodeName}.calls`, 1, { node: nodeName });
+
+    // 3. Logger：记录开始
+    globalLogger.info(`Node ${nodeName} started`, { node: nodeName, input_keys: Object.keys(state).join(",") });
+
+    const startTime = Date.now();
+    try {
+      const result = await nodeFn(state);
+
+      // 成功：标记 Span + 计数 + 日志
+      globalTracer.addTag("node.status", "ok");
+      globalTracer.addLog("Node completed", { result_keys: Object.keys(result).join(",") });
+      globalMetrics.endTimer(timer);
+      globalMetrics.incrementCounter(`node.${nodeName}.success`, 1, { node: nodeName });
+      globalLogger.info(`Node ${nodeName} completed`, { node: nodeName, latency_ms: Date.now() - startTime });
+      globalTracer.endSpan();
+
+      return result;
+    } catch (error: any) {
+      // 失败：标记 Span + 计数 + 日志
+      globalTracer.addTag("node.status", "error");
+      globalTracer.setError(error);
+      globalMetrics.endTimer(timer);
+      globalMetrics.incrementCounter(`node.${nodeName}.errors`, 1, { node: nodeName });
+      globalLogger.error(`Node ${nodeName} failed`, { node: nodeName, error: error.message });
+      globalTracer.endSpan();
+
+      throw error;
+    }
+  };
+}
+```
+
+### Observability API 正确用法
+
+```typescript
+// Tracer API
+globalTracer.startSpan(name, tags?)     // 开始 Span
+globalTracer.addTag(key, value)         // 添加标签（Span 级别）
+globalTracer.addLog(message, attrs?)    // 添加日志（Span 级别）
+globalTracer.setError(error)            // 标记错误
+globalTracer.endSpan()                  // 结束 Span
+
+// Metrics API
+globalMetrics.startTimer(name, labels?) // 返回 TimerContext
+globalMetrics.endTimer(timer)           // 结束计时
+globalMetrics.incrementCounter(name, delta, labels?)  // delta 必须是 number
+
+// Logger API
+globalLogger.info(message, attrs?)
+globalLogger.error(message, attrs?)
+```
+
+### harnessGraph.ts 中包装所有 9 个节点
+
+```typescript
+const tRouter = traceableNode("router", routerNode);
+const tMemory = traceableNode("memory", memoryNode);
+const tRag = traceableNode("rag", ragNode);
+const tSimple = traceableNode("simpleAgent", simpleAgentNode);
+const tReact = traceableNode("reactAgent", reactAgentNode);
+const tApproval = traceableNode("approval", approvalNode);
+const tExecuteTool = traceableNode("executeTool", executeToolNode);
+const tOutput = traceableNode("output", outputNode);
+const tError = traceableNode("error", errorNode);
+
+// 使用包装后的节点
+const graph = new StateGraph(HarnessState)
+  .addNode("router", tRouter, { description: "分析任务并确定路由" })
+  .addNode("memory", tMemory, { description: "从三层记忆获取上下文" })
+  .addNode("rag", tRag, { description: "从 RAG Pipeline 检索相关文档" })
+  .addNode("simpleAgent", tSimple, { description: "处理简单任务" })
+  .addNode("reactAgent", tReact, { description: "通过推理处理复杂任务" })
+  .addNode("approval", tApproval, { interruptAfter: true, description: "请求人工审批" })
+  .addNode("executeTool", tExecuteTool, { description: "执行已审批的工具" })
+  .addNode("output", tOutput, { description: "统一输出并存入记忆" })
+  .addNode("error", tError, { description: "优雅处理错误" });
+```
+
+---
+
+## Step 8: 重构 HarnessGraph
+
+### 修复 reactLoopRouter bug
+
+旧代码检查 `results?.[0]`（第一个结果），但 `results` 是 append 模式，应检查最新结果：
+
+```typescript
+// ❌ 旧代码
+if (state.results?.[0]?.type === "react_completed") return "output";
+
+// ✅ 新代码
+const latestResult = state.results?.[state.results.length - 1];
+if (latestResult?.type === "react_completed" || latestResult?.type === "direct_response") return "output";
+```
+
+### 简化图也使用 traceableNode
+
+```typescript
+// createSimpleHarnessGraph
+const tMemory = traceableNode("memory", memoryNode);
+const tRag = traceableNode("rag", ragNode);
+const tAgent = traceableNode("simpleAgent", simpleAgentNode);
+const tOutput = traceableNode("output", outputNode);
+
+// createReActHarnessGraph
+const tMemory = traceableNode("memory", memoryNode);
+const tRag = traceableNode("rag", ragNode);
+const tAgent = traceableNode("reactAgent", async (state: any) => {
+  return reactAgentNode({ ...state, maxIterations });
+});
+const tOutput = traceableNode("output", outputNode);
+```
+
+### createProductionHarnessGraph 导出
+
+```typescript
+export const createProductionHarnessGraph = createHarnessGraph;
+```
+
+### executeHarnessTask 返回增加 ragContext
+
+```typescript
+return {
+  response: result.finalResponse || "",
+  status: result.status,
+  taskType: result.taskType,
+  toolCalls: result.toolCalls,
+  interrupt: result.__interrupt__,
+  memoryContext: result.memoryContext,
+  ragContext: result.ragContext,  // ← 新增
+};
+```
+
+---
+
+## Step 9: 改造 Server（Koa 框架）
+
+### 依赖安装
+
+```bash
+npm install koa @koa/cors @koa/router koa-bodyparser
+npm install -D @types/koa @types/koa-bodyparser @types/koa__cors @types/koa__router
+```
+
+### server.ts (`src/server.ts`)
+
+从原生 `http` 模块改为 Koa 框架，新增完整 Harness 链路端点：
+
+```typescript
+import Koa from "koa";
+import bodyParser from "koa-bodyparser";
+import cors from "@koa/cors";
+import Router from "@koa/router";
+import type { Context, Next } from "koa";
+
+const app = new Koa();
+const router = new Router();
+
+// 错误处理中间件
+app.use(async (ctx: Context, next: Next) => {
+  try { await next(); }
+  catch (err: any) {
+    ctx.status = err.status || 500;
+    ctx.body = { error: err instanceof Error ? err.message : String(err) };
+  }
+});
+
+// POST /api/harness — 完整 Harness 链路
+router.post("/api/harness", async (ctx: Context) => {
+  const { message, threadId, maxIterations } = ctx.request.body as any;
+  if (!message) { ctx.status = 400; ctx.body = { error: "message 不能为空" }; return; }
+
+  const checkpointer = new MemoryCheckpointer();
+  const tid = threadId || `thread-${Date.now()}`;
+  activeThreads.set(tid, { checkpointer, startTime: Date.now() });
+
+  const result = await executeHarnessTask(message, {
+    threadId: tid, maxIterations: maxIterations || 5, checkpointer,
+  });
+
+  if (result.interrupt && result.interrupt.length > 0) {
+    ctx.body = { status: "paused", threadId: tid, interrupt: result.interrupt, message: "需要审批" };
+    return;
+  }
+
+  activeThreads.delete(tid);
+  ctx.body = { status: result.status, response: result.response, taskType: result.taskType, ... };
+});
+
+// POST /api/approve — 恢复中断审批
+router.post("/api/approve", async (ctx: Context) => {
+  const { threadId, approved, decision } = ctx.request.body as any;
+  // ... 从 activeThreads 取 checkpointer → resumeHarnessTask
+});
+
+// GET /api/observability — 可观测性统计
+router.get("/api/observability", async (ctx: Context) => {
+  ctx.body = { tracing: globalTracer.getSummary(), metrics: globalMetrics.getAllMetrics() };
+});
+
+// 安装中间件
+app.use(cors());
+app.use(bodyParser());
+app.use(router.routes());
+app.use(router.allowedMethods());
+app.listen(PORT, HOST, () => { ... });
+```
+
+### 前端 Next.js 代理 (`Web/app/api/harness/route.ts`)
+
+```typescript
+import { NextRequest, NextResponse } from "next/server";
+const HARNESS_URL = process.env.HARNESS_URL || "http://localhost:3001";
+
+export async function POST(req: NextRequest) {
+  const body = await req.json();
+  const res = await fetch(`${HARNESS_URL}/api/harness`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  return NextResponse.json(data);
+}
+```
+
+### API 端点总览
+
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/api/harness` | POST | 完整 Harness 链路（Memory + RAG + 路由 + Agent + 审批） |
+| `/api/approve` | POST | 恢复中断审批 |
+| `/api/observability` | GET | Tracing + Metrics 统计 |
+| `/api/chat` | POST | 直接 LLM 调用（向后兼容） |
+| `/api/health` | GET | 健康检查 |
+
+---
+
+## 文件变更清单
+
+| Step | 文件 | 变更类型 |
+|------|------|----------|
+| 1 | `engine/command.ts` | 修改：新增 `RESUME_VALUE_KEY` / `INTERRUPT_TYPE_KEY` |
+| 1 | `engine/stateGraph.ts` | 修改：`Checkpointer` + `_resumeFromInterrupt` 重写 |
+| 1 | `engine/harnessNodes.ts` | 修改：`approvalNode` 重写 |
+| 1 | `engine/index.ts` | 修改：导出新增常量 |
+| 2 | `tools/registry.ts` | 重写：`HarnessToolRegistry` 替代旧 `ToolRegistry` |
+| 2 | `agents/baseAgent.ts` | 修改：引用改为 `HarnessToolRegistry` / `harnessToolRegistry` |
+| 3 | `nodes/memoryNode.ts` | 新增 |
+| 3 | `nodes/outputNode.ts` | 新增 |
+| 3 | `nodes/index.ts` | 新增 |
+| 3 | `engine/harnessGraph.ts` | 重写：集成 memory/output 节点 |
+| 4 | `nodes/ragNode.ts` | 新增 |
+| 4 | `nodes/index.ts` | 修改：增加 ragNode 导出 |
+| 4 | `engine/harnessGraph.ts` | 修改：集成 rag 节点 |
+| 5 | `engine/harnessNodes.ts` | 修改：`routerNode` 使用真实 `Router` |
+| 5 | `engine/harnessGraph.ts` | 修改：状态 Schema 增加 reasoning/confidence/targetAgent |
+| 6 | `engine/harnessNodes.ts` | 修改：`buildEnrichedInput()` + Agent 节点注入上下文 |
+| 7 | `observability/traceableNode.ts` | 新增 |
+| 7 | `observability/index.ts` | 新增 |
+| 7 | `engine/harnessGraph.ts` | 修改：所有节点包装 traceableNode |
+| 8 | `engine/harnessGraph.ts` | 修改：修复 reactLoopRouter、简化图 traceableNode、新增 createProductionHarnessGraph |
+| 9 | `server.ts` | 重写：从原生 http 改为 Koa 框架 |
+| 9 | `Web/app/api/harness/route.ts` | 新增：前端 Next.js 代理 |
+| 9 | `Web/app/api/chat/route.ts` | 修改：默认端口 3000 → 3001 |
