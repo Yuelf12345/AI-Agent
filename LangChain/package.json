@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx --env-file=.env app.ts",
     "mcp-server": "tsx src/mcp/server.ts",
-    "mcp-agent": "tsx src/mcp/agent.ts"
+    "harness": "tsx --env-file=.env src/Harness/src/server.ts"
   },
   "author": "",
   "license": "ISC",

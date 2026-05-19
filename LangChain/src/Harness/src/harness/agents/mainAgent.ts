@@ -1,6 +1,13 @@
 import { BaseAgent } from "./baseAgent.ts";
 import { AgentState } from "../../types/index.ts";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
+import { llmService } from "../../services/llm.ts";
+import {
+  MainAgentSchema,
+  getMainAgentJsonSchema,
+  parseMainAgentOutput,
+} from "../output/schemas.ts";
+import { RegexFallbackParser } from "../output/parser.ts";
 
 /**
  * 子任务定义
@@ -9,9 +16,9 @@ export interface SubTask {
   id: string;
   description: string;
   assignedTo: string; // Worker名称
-  params?: Record<string, any>;
+  params?: Record<string, any> | undefined;
   status: "pending" | "running" | "completed" | "failed";
-  result?: string;
+  result?: string | undefined;
 }
 
 /**
@@ -21,17 +28,20 @@ interface ExecutionPlan {
   thinking: string;
   needSplit: boolean;
   subtasks: SubTask[];
-  directResponse?: string;
+  directResponse?: string | undefined;
 }
 
 /**
  * MainAgent - 系统唯一入口
- * 
+ *
  * 设计理念（来自Claude推荐）：
  * 1. 合并旧架构的Router+Planner+Supervisor
  * 2. 一次LLM调用完成分析和规划
  * 3. 动态执行子任务并汇总结果
- * 
+ *
+ * 使用结构化输出：优先使用 OpenAI response_format，
+ * 失败时降级到正则解析
+ *
  * 这是Orchestrator-Workers模式的简化实现
  */
 export class MainAgent extends BaseAgent {
@@ -84,8 +94,7 @@ export class MainAgent extends BaseAgent {
   "thinking": "简单问候，不需要拆解",
   "needSplit": false,
   "directResponse": "你好！有什么可以帮你的？",
-  "subtasks": []
-}`
+  "subtasks": []}`
     });
   }
 
@@ -99,13 +108,13 @@ export class MainAgent extends BaseAgent {
       // 步骤1：分析任务
       console.log("[MainAgent] 分析任务...");
       const plan = await this.analyzeTask(input);
-      
+
       // 步骤2：根据分析结果执行
       if (plan.needSplit && plan.subtasks.length > 0) {
         // 执行子任务
         console.log(`[MainAgent] 执行${plan.subtasks.length}个子任务...`);
         const results = await this.executeSubtasks(plan.subtasks);
-        
+
         // 汇总结果
         return {
           type: "orchestrated",
@@ -136,39 +145,36 @@ export class MainAgent extends BaseAgent {
    */
   private async analyzeTask(input: string): Promise<ExecutionPlan> {
     const messages = [
-      new SystemMessage(this.systemPrompt),
-      new HumanMessage(input)
+      { role: "system", content: this.systemPrompt },
+      { role: "user", content: input }
     ];
 
-    const response = await this.llm.invoke(messages);
-    const content = typeof response.content === 'string'
-      ? response.content
-      : JSON.stringify(response.content);
+    let content: string;
+    try {
+      // 优先尝试结构化输出
+      content = await llmService.structuredChat(messages, {
+        jsonSchema: getMainAgentJsonSchema(),
+        structured: true,
+      });
+    } catch (error) {
+      console.warn("[MainAgent] 结构化输出失败，降级到普通调用:", error);
+      content = await llmService.chat(messages);
+    }
 
     return this.parsePlan(content);
   }
 
   /**
-   * 解析执行计划
+   * 解析执行计划（优先结构化解析，降级正则）
    */
   private parsePlan(content: string): ExecutionPlan {
     try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        return {
-          thinking: "无法解析，直接回复",
-          needSplit: false,
-          subtasks: [],
-          directResponse: content
-        };
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]);
-      
+      // 优先尝试结构化解析
+      const parsed = parseMainAgentOutput(JSON.parse(content));
       return {
         thinking: parsed.thinking || "",
         needSplit: parsed.needSplit || false,
-        subtasks: (parsed.subtasks || []).map((task: any, index: number) => ({
+        subtasks: parsed.subtasks.map((task, index) => ({
           id: task.id || `task-${index + 1}`,
           description: task.description || "",
           assignedTo: task.assignedTo || "Unknown",
@@ -177,14 +183,10 @@ export class MainAgent extends BaseAgent {
         })),
         directResponse: parsed.directResponse
       };
-    } catch (error) {
-      console.error("[MainAgent] 解析失败:", error);
-      return {
-        thinking: "解析失败",
-        needSplit: false,
-        subtasks: [],
-        directResponse: content
-      };
+    } catch {
+      // 结构化解析失败，使用正则降级
+      console.warn("[MainAgent] 结构化解析失败，使用正则降级");
+      return RegexFallbackParser.parseMainAgentFallback(content);
     }
   }
 
@@ -201,12 +203,12 @@ export class MainAgent extends BaseAgent {
       // TODO: 后续接入真实Worker
       // 当前模拟执行
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       const result = `[${task.assignedTo}] 已完成: ${task.description}`;
       task.status = "completed";
       task.result = result;
       results.push(result);
-      
+
       console.log(`[MainAgent] 完成: ${task.description}`);
     }
 

@@ -1,16 +1,26 @@
 import { BaseAgent } from "./baseAgent.ts";
 import { AgentState } from "../../types/index.ts";
 import { BaseMessage, SystemMessage, HumanMessage, AIMessage } from "@langchain/core/messages";
+import { llmService } from "../../services/llm.ts";
+import {
+  ReActAgentSchema,
+  getReActAgentJsonSchema,
+  parseReActAgentOutput,
+} from "../output/schemas.ts";
+import { RegexFallbackParser } from "../output/parser.ts";
 
 /**
  * ReAct Agent - 实现 ReAct (Reasoning + Acting) 循环
- * 
+ *
  * 设计理念：
  * 1. 迭代式推理：Thought → Action → Observation → Thought → ...
  * 2. 每次迭代都有明确的思考过程
  * 3. 可以处理复杂的多步骤任务
  * 4. 支持最多 N 次迭代防止无限循环
- * 
+ *
+ * 使用结构化输出：优先使用 OpenAI response_format，
+ * 失败时降级到正则解析
+ *
  * ReAct 循环流程：
  * 1. Thought: 分析当前状态，决定下一步
  * 2. Action: 选择并执行工具
@@ -31,7 +41,7 @@ export class ReActAgent extends BaseAgent {
 
 工作方式：
 1. 思考当前情况 (Thought)
-2. 决定需要执行的行动 (Action)  
+2. 决定需要执行的行动 (Action)
 3. 观察行动结果 (Observation)
 4. 根据结果继续推理或给出最终答案
 
@@ -77,9 +87,9 @@ ${"TODO: will be dynamically injected"}
     }> = [];
 
     // 初始消息
-    let messages: BaseMessage[] = [
-      new SystemMessage(systemContent),
-      new HumanMessage(input)
+    let messages: Array<{ role: string; content: string }> = [
+      { role: "system", content: systemContent },
+      { role: "user", content: input }
     ];
 
     try {
@@ -87,14 +97,27 @@ ${"TODO: will be dynamically injected"}
         this.currentIteration++;
         console.log(`[ReActAgent] 迭代 ${this.currentIteration}/${this.maxIterations}`);
 
-        // 调用 LLM 获取下一步行动
-        const response = await this.llm.invoke(messages);
-        const content = typeof response.content === 'string' 
-          ? response.content 
-          : JSON.stringify(response.content);
+        // 调用 LLM 获取下一步行动（结构化输出）
+        let content: string;
+        try {
+          content = await llmService.structuredChat(messages, {
+            jsonSchema: getReActAgentJsonSchema(),
+            structured: true,
+          });
+        } catch (error) {
+          console.warn("[ReActAgent] 结构化输出失败，降级到普通调用:", error);
+          content = await llmService.chat(messages);
+        }
 
-        // 解析结果
-        const parsed = this.parseResult(content);
+        // 解析结果（优先结构化，降级正则）
+        let parsed;
+        try {
+          parsed = parseReActAgentOutput(JSON.parse(content));
+        } catch {
+          console.warn("[ReActAgent] 结构化解析失败，使用正则降级");
+          parsed = RegexFallbackParser.parseReActAgentFallback(content);
+        }
+
         console.log(`[ReActAgent] Thought: ${parsed.thought}`);
         console.log(`[ReActAgent] Action: ${parsed.action}`);
 
@@ -107,7 +130,7 @@ ${"TODO: will be dynamically injected"}
         // 检查是否完成
         if (parsed.action === "finish" || parsed.action === "FINISH") {
           this.setState(AgentState.COMPLETED);
-          
+
           const finalResponse = parsed.response || "任务完成";
           console.log(`[ReActAgent] 完成: ${finalResponse}`);
 
@@ -136,8 +159,8 @@ ${"TODO: will be dynamically injected"}
             // 将工具结果添加到消息历史
             messages = [
               ...messages,
-              new AIMessage(content),
-              new HumanMessage(`Observation: ${toolResult}`)
+              { role: "assistant", content: content },
+              { role: "user", content: `Observation: ${toolResult}` }
             ];
 
           } catch (error) {
@@ -148,8 +171,8 @@ ${"TODO: will be dynamically injected"}
             // 继续循环，让 LLM 处理错误
             messages = [
               ...messages,
-              new AIMessage(content),
-              new HumanMessage(`Observation: 工具执行失败 - ${(error as Error).message}`)
+              { role: "assistant", content: content },
+              { role: "user", content: `Observation: 工具执行失败 - ${(error as Error).message}` }
             ];
           }
         } else {
@@ -157,7 +180,7 @@ ${"TODO: will be dynamically injected"}
           console.log(`[ReActAgent] 无效的 action，继续循环`);
           messages = [
             ...messages,
-            new AIMessage(content)
+            { role: "assistant", content: content }
           ];
         }
       }
@@ -176,45 +199,6 @@ ${"TODO: will be dynamically injected"}
     } catch (error) {
       await this.handleError(error as Error);
       throw error;
-    }
-  }
-
-  /**
-   * 解析 LLM 返回的 JSON
-   */
-  private parseResult(content: string): {
-    thought: string;
-    action: string;
-    actionParams?: Record<string, any>;
-    response?: string;
-  } {
-    try {
-      // 提取 JSON 部分
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        // 如果没有 JSON 格式，认为是直接完成
-        return {
-          thought: "直接回复",
-          action: "finish",
-          response: content
-        };
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]);
-      return {
-        thought: parsed.thought || "",
-        action: parsed.action || "finish",
-        actionParams: parsed.actionParams || parsed.action_params || {},
-        response: parsed.response
-      };
-    } catch (error) {
-      // 解析失败，返回完成状态
-      console.error("[ReActAgent] JSON 解析失败:", error);
-      return {
-        thought: "解析失败",
-        action: "finish",
-        response: content
-      };
     }
   }
 

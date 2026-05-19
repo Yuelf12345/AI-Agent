@@ -21,4 +21,7 @@
 // import './src/Harness/test/4.test-memory.ts'
 // import './src/Harness/test/5.test-rag-enhanced.ts'
 // import './src/Harness/test/6.test-observability.ts'
-import './src/Harness/test/7.test-tool-enhanced.ts'
+// import './src/Harness/test/7.test-tool-enhanced.ts'
+// import './src/Harness/test/8.test-stategraph.ts'
+// import "./src/Harness/test/9.test-structured-output.ts"
+import "./src/Harness/test/10.test-hitl.ts"

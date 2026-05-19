@@ -10,6 +10,16 @@ import { config } from "../config/index.ts";
 export type LLMProvider = "openai" | "ollama";
 
 /**
+ * 带结构化输出的 Chat 选项
+ */
+export interface StructuredChatOptions {
+  /** JSON Schema（用于 response_format） */
+  jsonSchema?: object;
+  /** 是否启用结构化输出 */
+  structured?: boolean;
+}
+
+/**
  * LLM 服务
  * 统一管理 LLM 调用，支持 Ollama 和 OpenAI
  */
@@ -71,6 +81,52 @@ export class LLMService {
     });
 
     const response = await model.invoke(formattedMessages);
+    return typeof response.content === "string"
+      ? response.content
+      : JSON.stringify(response.content);
+  }
+
+  /**
+   * 结构化输出聊天
+   *
+   * 使用 OpenAI response_format 参数强制 JSON 输出
+   * @param messages - 消息列表
+   * @param options - 结构化选项
+   * @returns JSON 字符串响应
+   */
+  async structuredChat(
+    messages: Array<{ role: string; content: string }>,
+    options?: StructuredChatOptions,
+  ): Promise<string> {
+    const model = this.getModel();
+
+    // LangChain 消息格式转换
+    const formattedMessages = messages.map((m) => {
+      if (m.role === "user" || m.role === "human") {
+        return new HumanMessage(m.content);
+      } else if (m.role === "system") {
+        return new SystemMessage(m.content);
+      } else {
+        return new AIMessage(m.content);
+      }
+    });
+
+    // 构建调用参数
+    const invokeOptions: Record<string, any> = {};
+
+    // 如果提供了 JSON Schema，使用 response_format
+    if (options?.structured && options?.jsonSchema) {
+      invokeOptions.response_format = {
+        type: "json_schema",
+        json_schema: {
+          name: "agent_output",
+          schema: options.jsonSchema,
+          strict: true,
+        },
+      };
+    }
+
+    const response = await model.invoke(formattedMessages, invokeOptions);
     return typeof response.content === "string"
       ? response.content
       : JSON.stringify(response.content);

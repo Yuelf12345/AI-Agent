@@ -1,16 +1,24 @@
 import { BaseAgent } from "./baseAgent.ts";
 import { AgentState } from "../../types/index.ts";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
+import { llmService } from "../../services/llm.ts";
+import {
+  SimpleAgentSchema,
+  getSimpleAgentJsonSchema,
+  parseSimpleAgentOutput,
+} from "../output/schemas.ts";
+import { RegexFallbackParser } from "../output/parser.ts";
 
 /**
  * SimpleAgent - 最简单的Agent实现
- * 
+ *
  * 设计理念：
  * 1. 单次LLM调用
  * 2. LLM自己决定是否需要工具
  * 3. 如果需要工具，调用工具并返回结果
- * 
- * 这是对Router→Planner→Supervisor架构的简化
+ *
+ * 使用结构化输出：优先使用 OpenAI response_format，
+ * 失败时降级到正则解析
  */
 export class SimpleAgent extends BaseAgent {
   constructor() {
@@ -27,13 +35,13 @@ ${"TODO: will be dynamically injected"}
 工具选择指南：
 - read_file: 读取文件
   参数: { "filePath": "文件路径" }
-  
+
 - write_file: 写入文件
   参数: { "filePath": "文件路径", "content": "文件内容" }
-  
+
 - file_edit: 编辑文件
   参数: { "filePath": "文件路径", "oldText": "旧文本", "newText": "新文本" }
-  
+
 - bash: 执行shell命令
   参数: { "command": "shell命令" }
 
@@ -79,19 +87,35 @@ ${"TODO: will be dynamically injected"}
 
       // 步骤2：构建消息
       const messages = [
-        new SystemMessage(systemContent),
-        new HumanMessage(input)
+        { role: "system", content: systemContent },
+        { role: "user", content: input }
       ];
 
-      // 步骤3：调用LLM
-      console.log("[SimpleAgent] 调用LLM...");
-      const response = await this.llm.invoke(messages);
-      const content = typeof response.content === 'string' 
-        ? response.content 
-        : JSON.stringify(response.content);
+      // 步骤3：调用LLM（结构化输出）
+      console.log("[SimpleAgent] 调用LLM（结构化输出）...");
+      let content: string;
+      try {
+        // 优先尝试结构化输出
+        content = await llmService.structuredChat(messages, {
+          jsonSchema: getSimpleAgentJsonSchema(),
+          structured: true,
+        });
+      } catch (error) {
+        // 结构化输出失败，降级到普通调用
+        console.warn("[SimpleAgent] 结构化输出失败，降级到普通调用:", error);
+        content = await llmService.chat(messages);
+      }
 
-      // 步骤4：解析结果
-      const parsed = this.parseResult(content);
+      // 步骤4：解析结果（优先结构化，降级正则）
+      let parsed;
+      try {
+        parsed = parseSimpleAgentOutput(JSON.parse(content));
+      } catch {
+        // 解析失败，使用正则降级
+        console.warn("[SimpleAgent] 结构化解析失败，使用正则降级");
+        parsed = RegexFallbackParser.parseSimpleAgentFallback(content);
+      }
+
       console.log("[SimpleAgent] LLM分析:", parsed.thinking);
 
       // 步骤5：如果需要工具，调用工具
@@ -122,47 +146,6 @@ ${"TODO: will be dynamically injected"}
       throw error;
     } finally {
       this.setState(AgentState.COMPLETED);
-    }
-  }
-
-  /**
-   * 解析LLM返回的JSON
-   */
-  private parseResult(content: string): {
-    thinking: string;
-    needTool: boolean;
-    toolName?: string;
-    toolParams?: Record<string, any>;
-    response?: string;
-  } {
-    try {
-      // 提取JSON部分
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        // 如果没有JSON格式，认为是直接回复
-        return {
-          thinking: "直接回复用户",
-          needTool: false,
-          response: content
-        };
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]);
-      return {
-        thinking: parsed.thinking || "",
-        needTool: parsed.needTool || false,
-        toolName: parsed.toolName,
-        toolParams: parsed.toolParams,
-        response: parsed.response
-      };
-    } catch (error) {
-      // 解析失败，返回原始内容
-      console.error("[SimpleAgent] JSON解析失败:", error);
-      return {
-        thinking: "解析失败，返回原始内容",
-        needTool: false,
-        response: content
-      };
     }
   }
 }
