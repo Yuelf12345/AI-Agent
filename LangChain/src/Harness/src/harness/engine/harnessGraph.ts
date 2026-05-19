@@ -1,11 +1,13 @@
 /**
- * Harness Graph - 完整的 Harness 编排图（含 Memory + Output）
+ * Harness Graph - 完整的 Harness 编排图（含 Memory + RAG + Output + Observability）
  *
  * 构建主图，编排所有 Agent，包含：
  *   - 任务路由（简单 vs 复杂）
  *   - Memory 注入（增强对话能力）
+ *   - RAG 注入（增强知识检索）
  *   - 人机交互审批（危险操作）
  *   - 统一输出（存入 Memory）
+ *   - 可观测性（Tracing + Metrics + Logger）
  *   - 错误处理
  *   - 中断/恢复支持
  */
@@ -28,6 +30,7 @@ import {
 import { memoryNode } from "../nodes/memoryNode.ts";
 import { ragNode } from "../nodes/ragNode.ts";
 import { outputNode } from "../nodes/outputNode.ts";
+import { traceableNode } from "../observability/traceableNode.ts";
 
 /**
  * 创建完整的 Harness 状态 Schema（含 Memory 字段）
@@ -99,36 +102,30 @@ export function createHarnessGraph(options?: {
 }): any {
   const HarnessState = createHarnessStateSchema();
 
+  // 所有节点包装 traceableNode（自动 Tracing + Metrics + Logger）
+  const tRouter = traceableNode("router", routerNode);
+  const tMemory = traceableNode("memory", memoryNode);
+  const tRag = traceableNode("rag", ragNode);
+  const tSimple = traceableNode("simpleAgent", simpleAgentNode);
+  const tReact = traceableNode("reactAgent", reactAgentNode);
+  const tApproval = traceableNode("approval", approvalNode);
+  const tExecuteTool = traceableNode("executeTool", executeToolNode);
+  const tOutput = traceableNode("output", outputNode);
+  const tError = traceableNode("error", errorNode);
+
   const graph = new StateGraph(HarnessState)
-    // 路由器 - 确定任务类型
-    .addNode("router", routerNode, { description: "分析任务并确定路由" })
-
-    // Memory 注入 - 增强对话能力
-    .addNode("memory", memoryNode, { description: "从三层记忆获取上下文" })
-
-    // RAG 注入 - 增强知识检索
-    .addNode("rag", ragNode, { description: "从 RAG Pipeline 检索相关文档" })
-
-    // 简单 Agent - 单轮任务
-    .addNode("simpleAgent", simpleAgentNode, { description: "处理简单任务" })
-
-    // ReAct Agent - 多步复杂任务
-    .addNode("reactAgent", reactAgentNode, { description: "通过推理处理复杂任务" })
-
-    // 审批 - 人机交互
-    .addNode("approval", approvalNode, {
+    .addNode("router", tRouter, { description: "分析任务并确定路由" })
+    .addNode("memory", tMemory, { description: "从三层记忆获取上下文" })
+    .addNode("rag", tRag, { description: "从 RAG Pipeline 检索相关文档" })
+    .addNode("simpleAgent", tSimple, { description: "处理简单任务" })
+    .addNode("reactAgent", tReact, { description: "通过推理处理复杂任务" })
+    .addNode("approval", tApproval, {
       interruptAfter: true,
       description: "请求人工审批危险操作",
     })
-
-    // 工具执行
-    .addNode("executeTool", executeToolNode, { description: "执行已审批的工具" })
-
-    // 统一输出 - 存入 Memory + 提取响应
-    .addNode("output", outputNode, { description: "统一输出并存入记忆" })
-
-    // 错误处理
-    .addNode("error", errorNode, { description: "优雅处理错误" })
+    .addNode("executeTool", tExecuteTool, { description: "执行已审批的工具" })
+    .addNode("output", tOutput, { description: "统一输出并存入记忆" })
+    .addNode("error", tError, { description: "优雅处理错误" })
 
     // === 边 ===
     // START → router → memory → rag
