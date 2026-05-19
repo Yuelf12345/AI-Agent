@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const HARNESS_URL = process.env.HARNESS_URL || "http://localhost:3000";
+const HARNESS_URL = process.env.HARNESS_URL || "http://localhost:3001";
 
 export async function POST(req: NextRequest) {
   try {
