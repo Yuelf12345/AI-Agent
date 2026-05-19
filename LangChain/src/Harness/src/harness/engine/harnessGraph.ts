@@ -190,7 +190,9 @@ function approvalRouter(state: any): string {
 function reactLoopRouter(state: any): string {
   if (state.error) return "error";
   if (state.needsApproval) return "approval";
-  if (state.results?.[0]?.type === "react_completed") return "output";
+  // 检查最新的 result（results 是 append 模式，最新的在末尾）
+  const latestResult = state.results?.[state.results.length - 1];
+  if (latestResult?.type === "react_completed" || latestResult?.type === "direct_response") return "output";
   if ((state.iteration || 0) >= (state.maxIterations || 5)) return "output";
   return "reactAgent";
 }
@@ -213,11 +215,16 @@ export function createSimpleHarnessGraph(): any {
     .addField("status", z.enum(["idle", "running", "completed", "failed"]))
     .addField("error", z.string().nullable());
 
+  const tMemory = traceableNode("memory", memoryNode);
+  const tRag = traceableNode("rag", ragNode);
+  const tAgent = traceableNode("simpleAgent", simpleAgentNode);
+  const tOutput = traceableNode("output", outputNode);
+
   const graph = new StateGraph(HarnessState)
-    .addNode("memory", memoryNode)
-    .addNode("rag", ragNode)
-    .addNode("agent", simpleAgentNode)
-    .addNode("output", outputNode)
+    .addNode("memory", tMemory)
+    .addNode("rag", tRag)
+    .addNode("agent", tAgent)
+    .addNode("output", tOutput)
     .addEdge(START, "memory")
     .addEdge("memory", "rag")
     .addEdge("rag", "agent")
@@ -246,13 +253,18 @@ export function createReActHarnessGraph(maxIterations: number = 5): any {
     .addField("error", z.string().nullable())
     .addField("maxIterations", z.number());
 
+  const tMemory = traceableNode("memory", memoryNode);
+  const tRag = traceableNode("rag", ragNode);
+  const tAgent = traceableNode("reactAgent", async (state: any) => {
+    return reactAgentNode({ ...state, maxIterations });
+  });
+  const tOutput = traceableNode("output", outputNode);
+
   const graph = new StateGraph(HarnessState)
-    .addNode("memory", memoryNode)
-    .addNode("rag", ragNode)
-    .addNode("agent", async (state: any) => {
-      return reactAgentNode({ ...state, maxIterations });
-    })
-    .addNode("output", outputNode)
+    .addNode("memory", tMemory)
+    .addNode("rag", tRag)
+    .addNode("agent", tAgent)
+    .addNode("output", tOutput)
     .addEdge(START, "memory")
     .addEdge("memory", "rag")
     .addEdge("rag", "agent")
@@ -281,6 +293,7 @@ export async function executeHarnessTask(
   toolCalls?: any[];
   interrupt?: InterruptRequest[];
   memoryContext?: string | null;
+  ragContext?: string | null;
 }> {
   const graph = createHarnessGraph({
     checkpointer: options?.checkpointer,
@@ -324,6 +337,7 @@ export async function executeHarnessTask(
     toolCalls: result.toolCalls,
     interrupt: result.__interrupt__,
     memoryContext: result.memoryContext,
+    ragContext: result.ragContext,
   };
 }
 
@@ -351,5 +365,12 @@ export { interrupt } from "./command.ts";
 
 import { Command } from "./command.ts";
 import type { InterruptRequest } from "./command.ts";
+
+/**
+ * 生产级 Harness 图入口 — 与 createHarnessGraph 相同
+ *
+ * 推荐在生产环境使用此函数名，语义更清晰。
+ */
+export const createProductionHarnessGraph = createHarnessGraph;
 
 export default createHarnessGraph;
