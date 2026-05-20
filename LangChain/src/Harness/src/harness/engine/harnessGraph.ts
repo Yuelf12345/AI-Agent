@@ -21,6 +21,8 @@ import {
   routerNode,
   simpleAgentNode,
   reactAgentNode,
+  plannerNode,
+  supervisorNode,
   approvalNode,
   executeToolNode,
   errorNode,
@@ -82,15 +84,16 @@ export function createHarnessStateSchema(): StateSchema {
 }
 
 /**
- * 创建完整的 Harness 编排图（含 Memory + Output）
+ * 创建完整的 Harness 编排图（含 Memory + Output + Worker 编排）
  *
  * 图流程：
- *   START → router → memory → rag → [simpleAgent / reactAgent]
+ *   START → router → memory → rag → conditional(rag)
  *                         ↓ simple
- *                    simpleAgent → outputNodeRouter → output → END
- *                                                → approval → executeTool → output
+ *                    simpleAgent → output
  *                         ↓ complex
- *                    reactAgent → reactLoopRouter → output / approval / reactAgent循环
+ *                    planner → supervisor → output
+ *                    reactAgent → 循环 → output
+ *                    approval → executeTool → output
  *                    error → END
  *
  * @param options - 图配置
@@ -108,6 +111,8 @@ export function createHarnessGraph(options?: {
   const tRag = traceableNode("rag", ragNode);
   const tSimple = traceableNode("simpleAgent", simpleAgentNode);
   const tReact = traceableNode("reactAgent", reactAgentNode);
+  const tPlanner = traceableNode("planner", plannerNode);
+  const tSupervisor = traceableNode("supervisor", supervisorNode);
   const tApproval = traceableNode("approval", approvalNode);
   const tExecuteTool = traceableNode("executeTool", executeToolNode);
   const tOutput = traceableNode("output", outputNode);
@@ -119,6 +124,8 @@ export function createHarnessGraph(options?: {
     .addNode("rag", tRag, { description: "从 RAG Pipeline 检索相关文档" })
     .addNode("simpleAgent", tSimple, { description: "处理简单任务" })
     .addNode("reactAgent", tReact, { description: "通过推理处理复杂任务" })
+    .addNode("planner", tPlanner, { description: "将复杂任务拆解为子任务序列" })
+    .addNode("supervisor", tSupervisor, { description: "编排执行 Worker Agent 子任务" })
     .addNode("approval", tApproval, {
       interruptAfter: true,
       description: "请求人工审批危险操作",
@@ -138,6 +145,10 @@ export function createHarnessGraph(options?: {
 
     // 简单 Agent → 审批判断
     .addConditionalEdges("simpleAgent", simpleAgentRouter)
+
+    // 复杂任务: planner → supervisor → 输出
+    .addEdge("planner", "supervisor")
+    .addConditionalEdges("supervisor", supervisorRouter)
 
     // 审批 → 工具执行 → 输出
     .addConditionalEdges("approval", approvalRouter)
@@ -195,6 +206,18 @@ function reactLoopRouter(state: any): string {
   if (latestResult?.type === "react_completed" || latestResult?.type === "direct_response") return "output";
   if ((state.iteration || 0) >= (state.maxIterations || 5)) return "output";
   return "reactAgent";
+}
+
+/**
+ * supervisor 执行后路由：
+ *   - 有错误 → error
+ *   - 需要审批 → approval
+ *   - 否则 → output
+ */
+function supervisorRouter(state: any): string {
+  if (state.error) return "error";
+  if (state.needsApproval) return "approval";
+  return "output";
 }
 
 // ==================== 简化 Harness ====================

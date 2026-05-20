@@ -10,6 +10,8 @@ import { harnessToolRegistry } from "../tools/registry.ts";
 import { SimpleAgent } from "../agents/simpleAgent.ts";
 import { ReActAgent } from "../agents/reactAgent.ts";
 import { Router } from "../agents/router.ts";
+import { Planner } from "../agents/planner.ts";
+import { Supervisor } from "../agents/supervisor.ts";
 import { approvalGate } from "../hitl/approval.ts";
 
 /**
@@ -349,6 +351,102 @@ function buildEnrichedInput(userMessage: string, state: any): string {
 }
 
 /**
+ * Planner 节点 - 将复杂任务拆解为子任务序列
+ *
+ * 调用 Planner.plan() 将用户输入拆解为多个子任务，
+ * 每个子任务指定 assignedAgent、dependencies、params。
+ */
+export async function plannerNode(state: any): Promise<Partial<any>> {
+  const lastMessage = state.messages?.[state.messages.length - 1]?.content || "";
+
+  if (!lastMessage) {
+    return {
+      plan: { subtasks: [], reasoning: "无输入" },
+      currentStep: "planner",
+    };
+  }
+
+  // 构造增强输入：注入 Memory + RAG 上下文
+  const enrichedInput = buildEnrichedInput(lastMessage, state);
+
+  try {
+    const planner = new Planner();
+    const plan = await planner.plan(enrichedInput);
+
+    console.log(`[PlannerNode] 生成 ${plan.subtasks.length} 个子任务, reasoning=${plan.reasoning}`);
+
+    return {
+      plan,
+      currentStep: "planner",
+    };
+  } catch (error) {
+    console.error("[PlannerNode] 错误:", error);
+    return {
+      plan: { subtasks: [], reasoning: `规划失败: ${error}` },
+      error: String(error),
+      currentStep: "planner",
+    };
+  }
+}
+
+/**
+ * Supervisor 节点 - 按依赖顺序编排执行子任务
+ *
+ * 调用 Supervisor.execute(subtasks) 按依赖顺序执行所有子任务，
+ * 每个子任务由对应的 Worker Agent 完成。
+ * 汇总所有子任务结果，生成最终响应。
+ */
+export async function supervisorNode(state: any): Promise<Partial<any>> {
+  const subtasks = state.plan?.subtasks || [];
+
+  if (subtasks.length === 0) {
+    return {
+      results: [{ type: "empty_plan", response: "无法拆解任务，请直接描述需求" }],
+      finalResponse: "无法拆解任务，请直接描述需求",
+      currentStep: "supervisor",
+    };
+  }
+
+  try {
+    const supervisor = new Supervisor({ maxRetries: 2 });
+    const taskResults = await supervisor.execute(subtasks);
+
+    // 汇总所有子任务结果
+    const completedResults = taskResults.filter(r => r.success);
+    const failedResults = taskResults.filter(r => !r.success);
+
+    const summary = completedResults
+      .map((r: any) => {
+        const agent = r.data?.agent || "unknown";
+        const response = r.data?.response || "完成";
+        return `[${agent}] ${response}`;
+      })
+      .join("\n");
+
+    const failureSummary = failedResults.length > 0
+      ? `\n\n失败的任务:\n${failedResults.map((r: any) => `- ${r.taskId}: ${r.error}`).join("\n")}`
+      : "";
+
+    const finalResponse = `任务编排结果:\n${summary}${failureSummary}`;
+
+    console.log(`[SupervisorNode] 完成: ${completedResults.length}/${taskResults.length} 成功`);
+
+    return {
+      results: taskResults,
+      finalResponse,
+      currentStep: "supervisor",
+    };
+  } catch (error) {
+    console.error("[SupervisorNode] 错误:", error);
+    return {
+      results: [],
+      error: String(error),
+      currentStep: "supervisor",
+    };
+  }
+}
+
+/**
  * 条件路由 - 根据任务类型路由
  */
 export function routeByTaskType(state: any): string {
@@ -356,7 +454,7 @@ export function routeByTaskType(state: any): string {
     return "simpleAgent";
   }
   if (state.taskType === "complex") {
-    return "reactAgent";
+    return "planner";  // 复杂任务 → 先规划再编排（而非直接 ReAct）
   }
   // 默认回退
   return "simpleAgent";

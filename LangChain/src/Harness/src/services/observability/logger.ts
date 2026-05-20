@@ -289,9 +289,15 @@ export class Logger {
 }
 
 /**
- * 全局日志器
+ * 全局日志器（输出到控制台 + log 文件）
  */
-export const globalLogger = new Logger();
+export const globalLogger = new Logger({
+  console: true,
+  file: true,
+  filePath: "logs/harness.jsonl",
+  minLevel: "info",
+  timestamp: true,
+});
 
 // 便捷方法
 export const log = {

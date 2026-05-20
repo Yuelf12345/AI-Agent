@@ -17,7 +17,8 @@
 import { Chroma } from "@langchain/community/vectorstores/chroma";
 import { Document } from "@langchain/core/documents";
 import { Embeddings } from "@langchain/core/embeddings";
-import { ChromaClient, CollectionHandle } from "chromadb";
+import { ChromaClient } from "chromadb";
+import type { Collection } from "chromadb";
 import { embeddingService } from "./embedding.ts";
 import { config } from "../config/index.ts";
 
@@ -217,9 +218,9 @@ export class VectorStoreService {
     where?: Record<string, unknown>,
   ): Promise<{
     ids: string[][];
-    documents: string[][];
-    metadatas: Record<string, unknown>[][];
-    distances: number[][];
+    documents: (string | null)[][];
+    metadatas: (Record<string, unknown> | null)[][];
+    distances: (number | null)[][];
   }> {
     const collection = await this.client.getOrCreateCollection({
       name: this.collectionName,
@@ -228,7 +229,7 @@ export class VectorStoreService {
     const k = topK || config.memory.longTermMemory.topK;
 
     return await collection.query({
-      queryEmbeddings: queryVector,
+      queryEmbeddings: [queryVector],
       nResults: k,
       where: where as any,
       include: ["documents", "metadatas", "distances"],
@@ -277,7 +278,7 @@ export class VectorStoreService {
   /**
    * 获取原生 Chroma Collection（用于高级操作）
    */
-  async getCollection(): Promise<CollectionHandle> {
+  async getCollection(): Promise<Collection> {
     return await this.client.getOrCreateCollection({
       name: this.collectionName,
     });

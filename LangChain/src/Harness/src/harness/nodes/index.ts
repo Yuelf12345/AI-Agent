@@ -13,6 +13,8 @@ export {
   routerNode,
   simpleAgentNode,
   reactAgentNode,
+  plannerNode,
+  supervisorNode,
   approvalNode,
   executeToolNode,
   errorNode,

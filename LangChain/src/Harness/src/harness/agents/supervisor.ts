@@ -1,118 +1,154 @@
-import type{ SubTask, TaskResult, ExecutionContext } from "../../types/index.ts";
+import type { SubTask, TaskResult } from "../../types/index.ts";
+import { getWorker } from "./workerAgents.ts";
+import { globalLogger } from "../../services/observability/logger.ts";
 
 /**
- * Supervisor组件
+ * Supervisor 组件
  * 职责：监控子任务执行，处理依赖关系，汇总结果
+ *
+ * 改造：从模拟执行 → 调用真实 Worker Agent
  */
 export class Supervisor {
   private maxRetries: number;
 
   constructor(config?: { maxRetries?: number }) {
-    this.maxRetries = config?.maxRetries || 3;
+    this.maxRetries = config?.maxRetries || 2;
   }
 
   /**
-   * 执行子任务列表
+   * 执行子任务列表（按依赖顺序）
    * @param subtasks 子任务列表
    * @returns TaskResult[] 所有子任务的执行结果
    */
   async execute(subtasks: SubTask[]): Promise<TaskResult[]> {
-    const ctx: ExecutionContext = {
-      taskId: this.generateTaskId(),
-      subtasks: [...subtasks],
-      results: [],
-      currentTaskIndex: 0,
-      maxRetries: this.maxRetries
-    };
+    const results: TaskResult[] = [];
+    const taskMap = new Map(subtasks.map(t => [t.id, t]));
 
-    // 按依赖顺序执行
-    while (this.hasPendingTasks(ctx)) {
-      const task = this.getNextRunnableTask(ctx);
-      
-      if (!task) {
-        // 没有可执行的任务（可能依赖未满足）
+    // 按依赖顺序依次执行
+    let iteration = 0;
+    const maxIterations = subtasks.length + 2; // 防死循环
+
+    while (iteration < maxIterations) {
+      iteration++;
+
+      const runnableTask = this.getNextRunnableTask(subtasks, results);
+
+      if (!runnableTask) {
+        // 检查是否所有任务都完成或失败
+        const pending = subtasks.filter(t => t.status === "pending");
+        if (pending.length === 0) break;
+
+        // 有 pending 但无法执行 → 依赖死锁，强制失败
+        globalLogger.warn("Supervisor: 依赖死锁，强制失败未完成的任务", {
+          pendingIds: pending.map(t => t.id),
+        });
+        for (const t of pending) {
+          t.status = "failed";
+          results.push({
+            taskId: t.id,
+            success: false,
+            error: "依赖未满足，无法执行",
+          });
+        }
         break;
       }
 
-      const result = await this.executeTask(task, ctx);
-      ctx.results.push(result);
-
-      // 更新任务状态
-      task.status = result.success ? 'completed' : 'failed';
+      // 执行单个子任务
+      const result = await this.executeTask(runnableTask);
+      runnableTask.status = result.success ? "completed" : "failed";
+      results.push(result);
     }
 
-    return ctx.results;
+    globalLogger.info("Supervisor: 任务编排完成", {
+      total: subtasks.length,
+      completed: results.filter(r => r.success).length,
+      failed: results.filter(r => !r.success).length,
+    });
+
+    return results;
   }
 
   /**
-   * 执行单个子任务
+   * 执行单个子任务（调用真实 Worker Agent）
    */
-  private async executeTask(task: SubTask, ctx: ExecutionContext): Promise<TaskResult> {
-    task.status = 'running';
-    
-    let lastError: string | undefined;
-    
-    for (let attempt = 1; attempt <= ctx.maxRetries; attempt++) {
+  private async executeTask(task: SubTask): Promise<TaskResult> {
+    task.status = "running";
+
+    globalLogger.info(`Supervisor: 执行任务 ${task.id}`, {
+      task: task.id,
+      agent: task.assignedAgent,
+      description: task.description.slice(0, 100),
+    });
+
+    // 查找 Worker Agent
+    const worker = getWorker(task.assignedAgent);
+
+    if (!worker) {
+      globalLogger.error(`Supervisor: Worker ${task.assignedAgent} 不存在`);
+      return {
+        taskId: task.id,
+        success: false,
+        error: `Worker Agent "${task.assignedAgent}" 未注册`,
+      };
+    }
+
+    // 构造输入：任务描述 + 参数
+    const input = task.params
+      ? `${task.description}\n参数: ${JSON.stringify(task.params)}`
+      : task.description;
+
+    // 带重试的执行
+    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
-        // TODO: 这里暂时模拟执行，后续注入真正的Worker Agent
-        console.log(`[Supervisor] 执行任务: ${task.description} (尝试 ${attempt}/${ctx.maxRetries})`);
-        
-        // 模拟异步执行
-        await this.simulateExecution(task);
+        const result = await worker.execute(input);
+
+        globalLogger.info(`Supervisor: 任务 ${task.id} 完成`, {
+          task: task.id,
+          agent: task.assignedAgent,
+          attempt,
+          type: result.type,
+        });
 
         return {
           taskId: task.id,
-          success: true,
-          data: { result: `任务完成: ${task.description}` }
+          success: result.type !== "worker_error",
+          data: result,
         };
       } catch (error) {
-        lastError = error instanceof Error ? error.message : String(error);
-        console.error(`[Supervisor] 任务失败: ${task.id}, 尝试 ${attempt}/${ctx.maxRetries}`);
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        globalLogger.warn(`Supervisor: 任务 ${task.id} 失败 (尝试 ${attempt}/${this.maxRetries})`, {
+          task: task.id,
+          error: errorMsg,
+        });
+
+        if (attempt === this.maxRetries) {
+          return {
+            taskId: task.id,
+            success: false,
+            error: errorMsg,
+          };
+        }
       }
     }
 
     return {
       taskId: task.id,
       success: false,
-      error: lastError || '未知错误'
+      error: "达到最大重试次数",
     };
-  }
-
-  /**
-   * 检查是否还有待执行的任务
-   */
-  private hasPendingTasks(ctx: ExecutionContext): boolean {
-    return ctx.subtasks.some(t => t.status === 'pending');
   }
 
   /**
    * 获取下一个可执行的任务（依赖已满足）
    */
-  private getNextRunnableTask(ctx: ExecutionContext): SubTask | undefined {
-    return ctx.subtasks.find(task => {
-      if (task.status !== 'pending') return false;
-      
-      // 检查依赖是否全部完成
-      return task.dependencies.every(depId => {
-        const depTask = ctx.subtasks.find(t => t.id === depId);
-        return depTask?.status === 'completed';
-      });
+  private getNextRunnableTask(subtasks: SubTask[], results: TaskResult[]): SubTask | undefined {
+    const completedIds = new Set(
+      results.filter(r => r.success).map(r => r.taskId)
+    );
+
+    return subtasks.find(task => {
+      if (task.status !== "pending") return false;
+      return task.dependencies.every(depId => completedIds.has(depId));
     });
-  }
-
-  /**
-   * 模拟任务执行（后续替换为真实Worker调用）
-   */
-  private async simulateExecution(task: SubTask): Promise<void> {
-    // 模拟耗时操作
-    await new Promise(resolve => setTimeout(resolve, 100));
-    console.log(`[Supervisor] ${task.assignedAgent} 完成任务: ${task.description}`);
-  }
-
-  /**
-   * 生成任务ID
-   */
-  private generateTaskId(): string {
-    return `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
 }
