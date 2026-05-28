@@ -87,18 +87,28 @@ export function createHarnessStateSchema(): StateSchema {
  * 创建完整的 Harness 编排图（含 Memory + Output + Worker 编排）
  *
  * 图流程：
- *   START → router → memory → rag → conditional(rag)
- *                         ↓ simple
- *                    simpleAgent → output
- *                         ↓ complex
- *                    planner → supervisor → output
- *                    reactAgent → 循环 → output
- *                    approval → executeTool → output
- *                    error → END
+ *
+ *   START ──→ router ──→ memory ──→ rag ──→ ──┬── simple ──→ simpleAgent
+ *                                              ├── complex ──→ planner
+ *                                              └── default ──→ simpleAgent
+ *
+ *   simpleAgent ──┬── ok ──────────→ output ──→ END
+ *                 ├── needsApproval → approval ──┬── approved ──→ executeTool ──→ output ──→ END
+ *                 └── error ─────────→ error ──→ END           └── rejected ──→ output ──→ END
+ *
+ *   planner ──→ supervisor ──┬── ok ──────────→ output ──→ END
+ *                             ├── needsApproval → approval (同上)
+ *                             └── error ─────────→ error ──→ END
+ *
+ *   reactAgent ──┬── completed ──→ output ──→ END
+ *                ├── needsApproval → approval (同上)
+ *                ├── error ────────→ error ──→ END
+ *                └── continue ─────→ reactAgent (循环)
  *
  * @param options - 图配置
  * @returns 编译后的可执行图
  */
+
 export function createHarnessGraph(options?: {
   checkpointer?: any;
   maxIterations?: number | undefined;

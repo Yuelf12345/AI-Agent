@@ -210,9 +210,13 @@ app.use(bodyParser());
 app.use(router.routes());
 app.use(router.allowedMethods());
 
-app.listen(PORT, HOST, () => {
-  console.log(`[Harness] 服务启动: http://${HOST}:${PORT}`);
-  console.log(`[Harness] 模型: ${config.llm.openai.model}`);
-});
 
-export default app;
+
+const main = () => {
+  app.listen(PORT, HOST, () => {
+    console.log(`[Harness] 服务启动: http://${HOST}:${PORT}`);
+    console.log(`[Harness] 模型: ${config.llm.openai.model}`);
+  });
+}
+
+export default main;

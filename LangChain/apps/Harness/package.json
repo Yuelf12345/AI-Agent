@@ -1,0 +1,15 @@
+{
+  "name": "Harness",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tsx --env-file=../../.env src/server.ts",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "harness": "tsx --env-file=../../.env src/index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
