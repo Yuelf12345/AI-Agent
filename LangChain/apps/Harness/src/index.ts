@@ -1,3 +1,3 @@
-import main from './server.ts';
+import main from './services/server.ts';
 
 main();

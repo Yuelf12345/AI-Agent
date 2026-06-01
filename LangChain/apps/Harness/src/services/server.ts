@@ -21,18 +21,18 @@ import bodyParser from "koa-bodyparser";
 import cors from "@koa/cors";
 import Router from "@koa/router";
 import type { Context, Next } from "koa";
-import { config } from "./config/index.ts";
-import { llmService } from "./services/llm.ts";
-import { SimpleAgent } from "./harness/agents/simpleAgent.ts";
+import { config } from "../config/index.ts";
+import { llmService } from "./llm.ts";
+import { SimpleAgent } from "../harness/agents/simpleAgent.ts";
 import {
   createProductionHarnessGraph,
   executeHarnessTask,
   resumeHarnessTask,
   MemoryCheckpointer,
-} from "./harness/engine/harnessGraph.ts";
-import { globalTracer } from "./services/observability/tracing.ts";
-import { globalMetrics } from "./services/observability/metrics.ts";
-import { globalLogger } from "./services/observability/logger.ts";
+} from "../harness/engine/harnessGraph.ts";
+import { globalTracer } from "./observability/tracing.ts";
+import { globalMetrics } from "./observability/metrics.ts";
+import { globalLogger } from "./observability/logger.ts";
 
 const app = new Koa();
 const router = new Router();

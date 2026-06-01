@@ -1,4 +1,4 @@
-// File: /Users/yuelongfang/Desktop/demo/learn/LangChain/src/Harness/src/Web/app/page.tsx
+// File: /Users/yuelongfang/Desktop/demo/learn/LangChain/apps/Web/app/page.tsx
 import * as entry from '../../../app/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
