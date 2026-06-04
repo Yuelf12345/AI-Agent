@@ -1,10 +1,10 @@
 import LlamaCloud from "@llamaindex/llama-cloud";
 import fs from "fs";
-import { z } from 'zod';
-
+import { z } from "zod";
+import llm from "./llm.ts";
 
 const ResumeSchema = z.object({
-  input: z.string().describe('输入的问题'),
+  input: z.string().describe("输入的问题"),
 });
 
 const client = new LlamaCloud({
@@ -32,5 +32,11 @@ const pdf = async () => {
     expand: ["markdown"],
   });
   console.log(result.markdown?.pages);
-}
-pdf()
+};
+// pdf()
+
+
+const response = await llm.chat({
+  messages: [{ role: "user", content: "你好！请介绍一下你自己" }],
+});
+console.log("🤖", response.message.content);

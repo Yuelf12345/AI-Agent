@@ -6,7 +6,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "lama": "tsx --env-file=../../.env ./index.ts"
+    "lama": "bash ./run-remote.sh",
+    "lama:l": "bash ./run-local.sh"
   },
   "keywords": [],
   "author": "",
