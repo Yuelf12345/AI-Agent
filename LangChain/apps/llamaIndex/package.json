@@ -5,11 +5,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "tsx --env-file=../../.env src/test.ts",
     "lama": "bash ./run-remote.sh",
     "lama:l": "bash ./run-local.sh"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "pdfjs-dist": "^5.6.205"
+  }
 }
