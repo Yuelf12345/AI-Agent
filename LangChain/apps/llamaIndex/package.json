@@ -5,7 +5,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "tsx --env-file=../../.env src/test.ts",
+    "test": "tsx --env-file=../../.env src/index.ts",
     "lama": "bash ./run-remote.sh",
     "lama:l": "bash ./run-local.sh"
   },

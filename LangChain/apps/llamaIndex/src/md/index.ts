@@ -104,7 +104,7 @@ JS/TS 官方包还没有实现。
 }
 
 import { SentenceSplitter } from "@llamaindex/core/node-parser";
-import SemanticSplitter from "../SemanticSplitter.ts";
+import SemanticSplitter from "../utils/SemanticSplitter.ts";
 import { Document } from "@llamaindex/core/schema";
 
 // // 默认 chunkSize=1024, chunkOverlap=200
