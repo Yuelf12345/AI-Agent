@@ -47,4 +47,4 @@ fi
 
 # ---------- 3. 启动应用 ----------
 echo "🚀 正在启动本地 LLM 应用..."
-LOCAL=local tsx --env-file=../../.env ./index.ts
+LOCAL=local tsx --env-file=../../.env src/index.ts

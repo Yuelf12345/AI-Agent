@@ -1,0 +1,27 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.codeflicker/kwaipilot-hooks/skill-review-trigger.js",
+            "timeout": 30,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ~/.codeflicker/kwaipilot-hooks/check-skill-queue.js",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

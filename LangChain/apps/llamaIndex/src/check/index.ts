@@ -14,6 +14,7 @@
 import {
   SentenceSplitter,
   TokenTextSplitter,
+  SentenceWindowNodeParser
 } from "@llamaindex/core/node-parser";
 
 import { TextNode } from "@llamaindex/core/schema";
@@ -557,7 +558,7 @@ const SEPARATORS = [
   "，", // 中文逗号
 ];
 
-/** 基于递归去重 */
+/** 基于递归划分 */
 class RecursiveChunk {
   private config: RecursiveChunkConfig;
 
@@ -636,8 +637,15 @@ class RecursiveChunk {
         // 合并后不超过限制 → 贪婪合并
         buffer = combined;
       } else if (buffer.length < minChunkSize) {
-        // buffer 太短但合并下一块会超 → 仍然合并（略微超限可接受，避免碎片）
-        buffer = combined;
+        // buffer 太短但合并下一块会超 → 仍然合并
+        // 但限制溢出量不超过 chunkSize * 30%，避免越滚越大
+        const overflow = combined.length - chunkSize;
+        if (overflow <= chunkSize * 0.3) {
+          buffer = combined;
+        } else {
+          merged.push(buffer);
+          buffer = next;
+        }
       } else {
         // buffer 已经足够 → 断开
         merged.push(buffer);
@@ -723,11 +731,277 @@ class RecursiveChunk {
   }
 }
 
+/**
+ * LLM 理解切分（LLM-Powered Chunking）
+ *
+ * 核心思路：利用 LLM 理解语义的能力，生成语义独立且有意义的块。
+ *
+ * 为什么用 LLM 切分？
+ *   - 前四种方法（固定大小/语义/递归/句子窗口）都基于规则或 embedding，
+ *     无法真正"理解"内容
+ *   - LLM 可以识别出语义上独立的话题边界，生成更自然的 chunk
+ *   - 代价：计算量大、速度慢、依赖 LLM 可用性
+ *
+ * 算法流程：
+ *   1. 按段落预切分成"窗口"（每窗口 ≤ maxContextChars，避免撑满 LLM 上下文）
+ *   2. 对每个窗口，调用 LLM 识别语义边界并切分成块
+ *   3. LLM 返回 JSON 数组，解析后收集
+ *   4. 合并过小的 chunk
+ *
+ * 注意：LLM 上下文窗口有限，过长的文本需要分批处理
+ */
+
+interface LLMChunkConfig {
+  /** 每个 chunk 的目标最大字符数（默认 800） */
+  chunkSize: number;
+  /** 相邻 chunk 的重叠字符数（默认 50） */
+  chunkOverlap: number;
+  /** 每次发给 LLM 的最大字符数（避免超出 LLM 上下文，默认 2000） */
+  maxContextChars: number;
+  /** chunk 最小字符数（默认 100），低于此值与相邻 chunk 合并 */
+  minChunkSize: number;
+}
+
+/** LLM 切分系统提示词 */
+const LLM_CHUNK_SYSTEM_PROMPT = `你是一个文本分块助手。你的任务是将给定的文本按语义切分成语义自包含的大块。
+
+规则：
+1. 每个块应当是语义自包含、连贯的独立段落
+2. 只在自然的语义边界处切分（话题切换处）
+3. 不修改文本内容，不增删改任何字符
+4. 每个块尽量填满到接近上限字数，不要过度细分
+5. 返回 JSON 字符串数组，每个元素是一个块
+
+示例输出格式：
+["块1的文本内容", "块2的文本内容", "块3的文本内容"]`;
+
+/** 基于 LLM 理解切分 */
+class LLMChunk {
+  private config: LLMChunkConfig;
+
+  constructor(config?: Partial<LLMChunkConfig>) {
+    this.config = {
+      chunkSize: 800,
+      chunkOverlap: 50,
+      maxContextChars: 2000,
+      minChunkSize: 100,
+      ...config,
+    };
+
+    if (this.config.chunkOverlap >= this.config.chunkSize) {
+      throw new Error(
+        `chunkOverlap (${this.config.chunkOverlap}) 必须小于 chunkSize (${this.config.chunkSize})`
+      );
+    }
+  }
+
+  /**
+   * 将文本按段落切分成 LLM 一次能处理的"窗口"
+   *
+   * 每个窗口不超过 maxContextChars，相邻窗口之间有重叠段落保持上下文连贯
+   */
+  private splitIntoWindows(text: string): string[] {
+    const { maxContextChars } = this.config;
+    const paragraphs = text
+      .split(/\n\n+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const windows: string[] = [];
+    let current = "";
+
+    for (const para of paragraphs) {
+      if (current.length + para.length > maxContextChars && current.length > 0) {
+        windows.push(current);
+        // 保留最后一段作为窗口间 overlap
+        const paras = text.split(/\n\n+/).filter(Boolean);
+        const idx = paras.indexOf(para);
+        const lastPara = idx > 0 ? paras[idx - 1]! : "";
+        current = lastPara + "\n\n" + para;
+      } else {
+        current += (current ? "\n\n" : "") + para;
+      }
+    }
+
+    if (current.trim()) windows.push(current.trim());
+    return windows;
+  }
+
+  /**
+   * 调用 LLM 对单个窗口进行语义切分
+   */
+  private async splitWindow(window: string): Promise<string[]> {
+    const { chunkSize } = this.config;
+
+    const response = await Settings.llm.chat({
+      messages: [
+        { content: LLM_CHUNK_SYSTEM_PROMPT, role: "system" },
+        {
+          content: `请将以下文本切分成语义独立的大块，每个块尽量填满到接近 ${chunkSize} 字。不要过度细分——如果相邻内容属于同一个话题请合并到一个块中。\n\n${window}`,
+          role: "user",
+        },
+      ],
+    });
+
+    const text =
+      typeof response.message.content === "string"
+        ? response.message.content
+        : response.message.content.map((c: any) => c.text ?? "").join("");
+
+    return this.parseChunksFromLLMResponse(text);
+  }
+
+  /**
+   * 从 LLM 返回文本中提取 JSON 数组
+   *
+   * 处理 LLM 可能用代码块包裹 JSON 的情况
+   */
+  private parseChunksFromLLMResponse(text: string): string[] {
+    // 尝试提取 ```json ... ``` 包裹的内容
+    const jsonBlock = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    const jsonStr = jsonBlock ? jsonBlock[1]! : text;
+
+    try {
+      const parsed = JSON.parse(jsonStr);
+      if (Array.isArray(parsed)) {
+        return parsed.map((s) => String(s).trim()).filter((s) => s.length > 0);
+      }
+    } catch {
+      // JSON 解析失败 → 回退
+    }
+
+    // 回退方案：按空行或编号切分
+    return text
+      .split(/\n\n+/)
+      .map((s) => s.replace(/^\d+[\.\)]\s*/, "").trim())
+      .filter((s) => s.length > 10);
+  }
+
+  /**
+   * 从后向前贪婪合并相邻 chunk
+   *
+   * LLM 倾向于过度切分（200~300 字），利用贪婪合并将所有 chunk
+   * 尽量合并到接近 chunkSize，除非再加一段就会超限
+   */
+  private greedyMerge(chunks: string[]): string[] {
+    const { chunkSize } = this.config;
+    if (chunks.length <= 1) return chunks;
+
+    const merged: string[] = [];
+    let buffer = chunks[0]!;
+
+    for (let i = 1; i < chunks.length; i++) {
+      const next = chunks[i]!;
+      const combined = buffer + "\n\n" + next;
+
+      if (combined.length <= chunkSize) {
+        // 合并后不超过限制 → 贪婪合并
+        buffer = combined;
+      } else {
+        // 再合并就超了 → 断开
+        merged.push(buffer);
+        buffer = next;
+      }
+    }
+
+    if (merged.length > 0) {
+      // 检查最后一个 chunk 是否能和倒数第二个合并（可能各自的 small chunk 合并后刚好不超）
+      const last = merged[merged.length - 1]!;
+      const combined = last + "\n\n" + buffer;
+      if (combined.length <= chunkSize) {
+        merged[merged.length - 1] = combined;
+      } else {
+        merged.push(buffer);
+      }
+    } else {
+      merged.push(buffer);
+    }
+
+    return merged;
+  }
+
+  /**
+   * 为相邻 chunk 添加 overlap
+   */
+  private applyOverlap(chunks: string[]): string[] {
+    const { chunkOverlap } = this.config;
+    if (chunkOverlap === 0 || chunks.length <= 1) return chunks;
+
+    return chunks.map((chunk, i) => {
+      if (i === 0) return chunk;
+      const prevChunk = chunks[i - 1]!;
+      const overlapStart = snapToWordBoundary(
+        prevChunk,
+        prevChunk.length - chunkOverlap,
+        "forward"
+      );
+      return prevChunk.slice(overlapStart) + chunk;
+    });
+  }
+
+  /**
+   * 对单个文本字符串进行 LLM 语义切分
+   */
+  async splitText(text: string): Promise<string[]> {
+    const windows = this.splitIntoWindows(text);
+    const allChunks: string[] = [];
+    const { chunkSize } = this.config;
+    console.log('开始切分');
+    
+    for (const window of windows) {
+      const chunks = await this.splitWindow(window);
+      allChunks.push(...chunks);
+    }
+
+    const finalChunks: string[] = [];
+    for (const chunk of allChunks) {
+      if (chunk.length <= chunkSize) {
+        finalChunks.push(chunk);
+      } else {
+        for (let i = 0; i < chunk.length; i += chunkSize) {
+          const sub = chunk.slice(i, i + chunkSize).trim();
+          if (sub) finalChunks.push(sub);
+        }
+      }
+    }
+
+    return this.applyOverlap(this.greedyMerge(finalChunks));
+  }
+
+  /**
+   * 接收文档，执行 LLM 语义切分，返回 LlamaIndex 兼容的 TextNode[]
+   */
+  async splitDocuments(docs: { text: string; id_?: string }[]): Promise<TextNode[]> {
+    const nodes: TextNode[] = [];
+
+    for (const doc of docs) {
+      const chunks = await this.splitText(doc.text);
+      chunks.forEach((chunk, i) => {
+        const node = new TextNode({
+          text: chunk,
+          id_: `${doc.id_ || "doc"}-llm-${i}`,
+        });
+        nodes.push(node);
+      });
+    }
+
+    return nodes;
+  }
+}
+
 export {
   FixedSizeChunk,
   SemanticChunk,
   RecursiveChunk,
+  LLMChunk,
   SentenceSplitter,
   TokenTextSplitter,
+  SentenceWindowNodeParser,
 };
-export type { FixedSizeChunkConfig, SemanticChunkConfig, RecursiveChunkConfig };
+
+export type {
+  FixedSizeChunkConfig,
+  SemanticChunkConfig,
+  RecursiveChunkConfig,
+  LLMChunkConfig,
+};

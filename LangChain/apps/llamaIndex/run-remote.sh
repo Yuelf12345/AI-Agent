@@ -11,4 +11,4 @@ fi
 
 # 启动远程 LLM 应用
 echo "🚀 正在连接远程 LLM 应用..."
-tsx --env-file=../../.env ./index.ts
+tsx --env-file=../../.env src//index.ts
