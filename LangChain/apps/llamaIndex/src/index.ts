@@ -117,7 +117,13 @@ if (hasExistingIndex) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-//  Step 4: 构建 RAG QA Chain — 检索 + 生成
+//  Step 4: 构建 RAG QA Chain — 检索
+/**
+ * 在自然语言处理中有文本检索技术，分为：
+  1. 稀疏文本检索（Sparse Retrieval）
+  2. 稠密文本检索（Dense Retrieval）
+  在现行的 RAG 语境下，更多是使用了向量化搜索，也就是稠密文本检索的方式。
+ */
 // ═══════════════════════════════════════════════════════════════════════
 const queryEngine = index.asQueryEngine({ similarityTopK: 3 });
 
