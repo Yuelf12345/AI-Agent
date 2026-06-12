@@ -36,6 +36,8 @@ import { FixedSizeChunk, SemanticChunk, RecursiveChunk, LLMChunk, SentenceSplitt
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const FILE_DIR = path.resolve(__dirname, "../files");
+const STORAGE_DIR = path.resolve(__dirname, "../storage");
+const CACHE_FILE = path.resolve(__dirname, "../cache", "nodes.json");
 
 //  Step 0: 全局配置 — 设置 Embedding 模型和 LLM
 // ═══════════════════════════════════════════════════════════════════════
@@ -47,66 +49,93 @@ function configureSettings() {
   console.log("⚙️  全局配置完成 — Embedding: text-embedding-v3, LLM: 已就绪");
 }
 
-// Step0: 全局配置（必须在 SemanticChunk 之前，因为它依赖 Settings.embedModel）
+// Step0: 全局配置
 configureSettings();
 
-// Step1: 加载文件
-const reader = new SimpleDirectoryReader();
-// 使用 SimpleDirectoryReader 加载目录下的所有文档（含 PDF）
-const documents = await reader.loadData({
-  directoryPath: FILE_DIR,
-});
-console.log(`✅ 共加载 ${documents.length} 个文档`);
-const fullText = documents.map((d: Document) => d.text).join("\n\n");
-const mergedDoc = new Document({ text: fullText, id_: "merged-pdf" });
-console.log(`📊 合并后总字符数: ${fullText.length}}`);
+// ═══════════════════════════════════════════════════════════════════════
+//  缓存检查：如果已有持久化索引，直接加载，跳过整个构建流程
+// ═══════════════════════════════════════════════════════════════════════
+const storageContext = await storageContextFromDefaults({ persistDir: STORAGE_DIR });
 
-// Setp2: 切分
-// {
-//   const splitter = new SentenceWindowNodeParser({ windowSize: 2 });
-//   const docs = [new Document({ text: fullText, id_: "merged-pdf" })];
-//   const nodes = splitter.buildWindowNodesFromDocuments(docs);
+let index: VectorStoreIndex;
+const hasExistingIndex = fs.existsSync(path.join(STORAGE_DIR, "docstore.json"));
 
-//   console.log("🚀 开始切分文档...");
-//   console.log(`📊 切分出 ${nodes.length} 个节点`);
+if (hasExistingIndex) {
+  console.log("📂 检测到已有持久化索引，直接加载...");
+  index = await VectorStoreIndex.init({ storageContext });
+  console.log(`✅ 索引加载完成`);
+} else {
+  // 没有持久化索引 → 加载或构建节点
 
-//   // 写入文件：展示每个节点的 text + metadata.window
-//   const outputPath = path.resolve(__dirname, "../output", `chunks-sentence-window-${Date.now()}.txt`);
-//   const outputDir = path.dirname(outputPath);
-//   if (!fs.existsSync(outputDir)) {
-//     fs.mkdirSync(outputDir, { recursive: true });
-//   }
+  // ═══════════════════════════════════════════════════════════════════
+  //  Step 1-2: 加载文件 + 切分（优先从缓存加载）
+  // ═══════════════════════════════════════════════════════════════════
+  let nodes: TextNode[];
+  const hasCachedNodes = fs.existsSync(CACHE_FILE);
 
-//   let content = nodes
-//     .map((node, i) => {
-//       const windowText = node.metadata["window"] || "(无上下文)";
-//       return [
-//         `── node[${i}] (text: ${node.text.length}字, window: ${windowText.length}字) ──`,
-//         `【当前句子】${node.text}`,
-//         `【上下文窗口】${windowText}`,
-//       ].join("\n");
-//     })
-//     .join("\n\n");
+  if (hasCachedNodes) {
+    console.log("📂 检测到切分缓存，直接加载...");
+    const cached = JSON.parse(fs.readFileSync(CACHE_FILE, "utf-8"));
+    nodes = cached.map(
+      (item: { text: string; id_: string }) =>
+        new TextNode({ text: item.text, id_: item.id_ }),
+    );
+    console.log(`📊 从缓存加载 ${nodes.length} 个 chunk`);
+  } else {
+    // Step 1: 加载文件
+    const reader = new SimpleDirectoryReader();
+    const documents = await reader.loadData({ directoryPath: FILE_DIR });
+    console.log(`✅ 共加载 ${documents.length} 个文档`);
+    const fullText = documents.map((d: Document) => d.text).join("\n\n");
+    console.log(`📊 合并后总字符数: ${fullText.length}`);
 
-//   fs.writeFileSync(outputPath, content, "utf-8");
-//   console.log(`✅ 已写入 ${outputPath}`);
-// }
-const splitter = new LLMChunk({ chunkSize: 512, chunkOverlap: 20 });
-const nodes = await splitter.splitText(fullText);
+    // Step 2: 切分
+    const splitter = new LLMChunk({ chunkSize: 512, chunkOverlap: 20 });
+    const chunks = await splitter.splitText(fullText);
+    nodes = chunks.map((text, i) => new TextNode({ text, id_: `llm-chunk-${i}` }));
+    console.log(`📊 切分出 ${nodes.length} 个 chunk`);
 
-console.log("🚀 开始切分文档...");
-console.log(`📊 切分出 ${nodes.length} 个 chunk`);
+    // 缓存切分结果（避免下次重新 LLM 切分）
+    const cacheDir = path.dirname(CACHE_FILE);
+    if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
+    fs.writeFileSync(
+      CACHE_FILE,
+      JSON.stringify(nodes.map((n) => ({ text: n.text, id_: n.id_ })).sort()),
+      "utf-8",
+    );
+    console.log(`💾 切分结果已缓存到 ${CACHE_FILE}`);
+  }
 
-// 写入文件
-const outputPath = path.resolve(__dirname, "../output", `chunks-${Date.now()}.txt`);
-const outputDir = path.dirname(outputPath);
-if (!fs.existsSync(outputDir)) {
-  fs.mkdirSync(outputDir, { recursive: true });
+  // ═══════════════════════════════════════════════════════════════════
+  //  Step 3: 向量化 & 建索引（含持久化）
+  // ═══════════════════════════════════════════════════════════════════
+  console.log("⏳ 正在生成 embedding 并构建向量索引...");
+  index = await VectorStoreIndex.init({ nodes, storageContext });
+  console.log(`✅ 向量数据库构建完成`);
+  console.log(`   📦 节点数: ${nodes.length}`);
+  console.log(`   💾 持久化路径: ${STORAGE_DIR}`);
 }
 
-let content = nodes
-  .map((chunk, i) => `── chunk[${i}] (${chunk.length}字) ──\n${chunk}`)
-  .join("\n\n");
-fs.writeFileSync(outputPath, content, "utf-8");
-console.log(`✅ 已写入 ${outputPath}`);
+// ═══════════════════════════════════════════════════════════════════════
+//  Step 4: 构建 RAG QA Chain — 检索 + 生成
+// ═══════════════════════════════════════════════════════════════════════
+const queryEngine = index.asQueryEngine({ similarityTopK: 3 });
 
+const query = "什么是CRISPE框架";
+console.log(`\n🔍 用户查询: "${query}"`);
+console.log("⏳ 正在检索并生成回答...\n");
+
+const response = await queryEngine.query({ query });
+
+console.log("─── 回答 ───");
+console.log(response.message.content);
+console.log("");
+
+const sourceNodes = response.sourceNodes ?? [];
+console.log(`📎 引用 ${sourceNodes.length} 个相关 chunk 作为上下文:`);
+sourceNodes.forEach((nodeWithScore, i) => {
+  const score = nodeWithScore.score ?? 0;
+  console.log(`  [${i}] 相似度: ${(score * 100).toFixed(1)}%`);
+  console.log(`      ${nodeWithScore.node.text.slice(0, 100)}...`);
+});
+console.log("\n✅ RAG 查询完成");
