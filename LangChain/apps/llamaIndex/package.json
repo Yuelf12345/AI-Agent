@@ -5,9 +5,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "tsx --env-file=../../.env src/index.ts",
+    "test": "LOCAL=local tsx --env-file=../../.env src/index.ts",
     "lama": "bash ./run-remote.sh",
-    "lama:l": "bash ./run-local.sh"
+    "lama:l": "bash ./run-local.sh",
+    "mult": "LOCAL=vision tsx --env-file=../../.env src/RAG/2.Multimodal\\ RAG.ts",
+    "naive": "LOCAL=local tsx --env-file=../../.env src/RAG/1.Naive\\ RAG.ts"
   },
   "keywords": [],
   "author": "",
