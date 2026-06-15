@@ -8,8 +8,9 @@
     "test": "LOCAL=local tsx --env-file=../../.env src/index.ts",
     "lama": "bash ./run-remote.sh",
     "lama:l": "bash ./run-local.sh",
+    "naive": "LOCAL=local tsx --env-file=../../.env src/RAG/1.Naive\\ RAG.ts",
     "mult": "LOCAL=vision tsx --env-file=../../.env src/RAG/2.Multimodal\\ RAG.ts",
-    "naive": "LOCAL=local tsx --env-file=../../.env src/RAG/1.Naive\\ RAG.ts"
+    "hyde": "LOCAL=local tsx --env-file=../../.env src/RAG/3.HyDe\\ RAG.ts"
   },
   "keywords": [],
   "author": "",
