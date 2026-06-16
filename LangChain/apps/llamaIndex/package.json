@@ -11,7 +11,8 @@
     "naive": "LOCAL=local tsx --env-file=../../.env src/RAG/1.Naive\\ RAG.ts",
     "mult": "LOCAL=vision tsx --env-file=../../.env src/RAG/2.Multimodal\\ RAG.ts",
     "hyde": "LOCAL=local tsx --env-file=../../.env src/RAG/3.HyDe\\ RAG.ts",
-    "coc": "LOCAL=local tsx --env-file=../../.env src/RAG/4.Corrective\\ RAG.ts"
+    "coc": "LOCAL=local tsx --env-file=../../.env src/RAG/4.Corrective\\ RAG.ts",
+    "graph": "tsx --env-file=../../.env src/RAG/5.Graph\\ RAG.ts"
   },
   "keywords": [],
   "author": "",

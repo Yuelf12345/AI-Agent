@@ -51,3 +51,11 @@ export const CACHE_MULTIMODAL = path.resolve(CACHE_DIR, "multimodal_nodes.json")
 
 /** Vision LLM 生成的图片描述缓存 */
 export const CACHE_IMAGE_DESC = path.resolve(CACHE_DIR, "image_descriptions.json");
+
+// ─── Graph RAG 缓存路径 ──────────────────────────────────────────────
+/** Graph RAG 三元组缓存 */
+export const CACHE_GRAPH_TRIPLES = path.resolve(CACHE_DIR, "graph_triples.json");
+/** Graph RAG 社区摘要缓存 */
+export const CACHE_GRAPH_COMMUNITIES = path.resolve(CACHE_DIR, "graph_communities.json");
+/** Graph RAG 声明缓存 */
+export const CACHE_GRAPH_CLAIMS = path.resolve(CACHE_DIR, "graph_claims.json");
