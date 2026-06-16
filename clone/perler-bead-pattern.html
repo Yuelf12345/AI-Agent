@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拼豆图纸生成器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0 20px;
+        }
+
+        header h1 {
+            font-size: 2.2em;
+            background: linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradientShift 4s ease infinite;
+        }
+
+        header p {
+            color: #888;
+            margin-top: 8px;
+            font-size: 0.95em;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 24px;
+            margin-top: 20px;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+        .control-panel h2 {
+            font-size: 1.1em;
+            margin-bottom: 20px;
+            color: #48dbfb;
+        }
+
+        .upload-zone {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .upload-zone:hover {
+            border-color: #48dbfb;
+            background: rgba(72, 219, 251, 0.05);
+        }
+
+        .upload-zone.drag-over {
+            border-color: #feca57;
+            background: rgba(254, 202, 87, 0.1);
+            transform: scale(1.02);
+        }
+
+        .upload-zone .icon {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .upload-zone p {
+            font-size: 0.9em;
+            color: #888;
+        }
+
+        .upload-zone input[type="file"] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .upload-preview {
+            width: 100%;
+            max-height: 160px;
+            object-fit: contain;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: none;
+        }
+
+        .upload-info {
+            font-size: 0.8em;
+            color: #666;
+            display: none;
+        }
+
+        /* Resolution Controls */
+        .section-title {
+            font-size: 0.9em;
+            color: #aaa;
+            margin-bottom: 12px;
+            margin-top: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .control-group {
+            margin-bottom: 16px;
+        }
+
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+            color: #ccc;
+        }
+
+        .control-group label span.value {
+            color: #48dbfb;
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #48dbfb;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(72, 219, 251, 0.5);
+            transition: transform 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            padding: 8px 0;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #48dbfb;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            font-size: 0.9em;
+            color: #ccc;
+            cursor: pointer;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #48dbfb, #0abde3);
+            color: #1a1a2e;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(72, 219, 251, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            color: #ccc;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+        }
+
+        .btn-secondary:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* Canvas Area */
+        .canvas-area {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 20px;
+            min-height: 500px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .canvas-toolbar {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .canvas-toolbar .info {
+            font-size: 0.85em;
+            color: #888;
+        }
+
+        .canvas-toolbar .info span {
+            color: #48dbfb;
+        }
+
+        .zoom-controls {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .zoom-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.05);
+            color: #ccc;
+            cursor: pointer;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .zoom-btn:hover {
+            background: rgba(72, 219, 251, 0.15);
+            color: #48dbfb;
+        }
+
+        .zoom-level {
+            font-size: 0.8em;
+            color: #888;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .canvas-wrapper {
+            width: 100%;
+            overflow: auto;
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            position: relative;
+        }
+
+        #beadCanvas {
+            border-radius: 4px;
+            image-rendering: pixelated;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 400px;
+            color: #555;
+        }
+
+        .empty-state .icon {
+            font-size: 4em;
+            margin-bottom: 16px;
+        }
+
+        .empty-state p {
+            font-size: 1em;
+        }
+
+        /* Color Stats */
+        .color-stats {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .color-stats h3 {
+            font-size: 0.9em;
+            color: #aaa;
+            margin-bottom: 12px;
+        }
+
+        .color-list {
+            max-height: 250px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .color-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .color-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+        }
+
+        .color-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 0;
+            font-size: 0.8em;
+        }
+
+        .color-swatch {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            flex-shrink: 0;
+        }
+
+        .color-hex {
+            color: #999;
+            font-family: 'Courier New', monospace;
+            min-width: 70px;
+        }
+
+        .color-count {
+            color: #666;
+            margin-left: auto;
+        }
+
+        /* Loading overlay */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            border-radius: 16px;
+            z-index: 10;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #48dbfb;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .control-panel {
+                position: static;
+            }
+        }
+
+        /* Grid overlay toggle */
+        .grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧩 拼豆图纸生成器</h1>
+            <p>上传图片，生成拼豆图纸 — 支持自定义分辨率与拼豆调色板</p>
+        </header>
+
+        <div class="main-layout">
+            <!-- Control Panel -->
+            <aside class="control-panel">
+                <h2>⚙️ 控制面板</h2>
+
+                <!-- Upload -->
+                <div class="upload-zone" id="uploadZone">
+                    <div class="icon">📁</div>
+                    <p>点击或拖拽上传图片</p>
+                    <input type="file" id="fileInput" accept="image/*">
+                </div>
+                <img class="upload-preview" id="uploadPreview" alt="preview">
+                <div class="upload-info" id="uploadInfo"></div>
+
+                <!-- Resolution -->
+                <div class="section-title">📐 分辨率控制</div>
+
+                <div class="control-group">
+                    <label>宽度（列数） <span class="value" id="widthValue">32</span></label>
+                    <input type="range" id="beadWidth" min="8" max="120" value="32">
+                </div>
+
+                <div class="control-group">
+                    <label>高度（行数） <span class="value" id="heightValue">32</span></label>
+                    <input type="range" id="beadHeight" min="8" max="120" value="32">
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="lockAspect" checked>
+                    <label for="lockAspect">🔒 锁定原始宽高比</label>
+                </div>
+
+                <!-- Display Options -->
+                <div class="section-title">🎨 显示选项</div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="showGrid">
+                    <label for="showGrid">📐 显示网格线</label>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="usePalette" checked>
+                    <label for="usePalette">🧱 使用拼豆标准色</label>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="showNumbers">
+                    <label for="showNumbers">🔢 显示颜色编号</label>
+                </div>
+
+                <div class="control-group">
+                    <label>拼豆大小 <span class="value" id="beadSizeValue">12</span>px</label>
+                    <input type="range" id="beadSize" min="4" max="32" value="12">
+                </div>
+
+                <!-- Action Buttons -->
+                <button class="btn btn-primary" id="generateBtn" disabled>🔄 生成图纸</button>
+                <button class="btn btn-secondary" id="downloadBtn" disabled>💾 下载图纸</button>
+                <button class="btn btn-secondary" id="downloadCSVBtn" disabled>📊 导出颜色统计</button>
+
+                <!-- Color Stats -->
+                <div class="color-stats" id="colorStats" style="display: none;">
+                    <h3>📊 颜色用量统计</h3>
+                    <div class="color-list" id="colorList"></div>
+                    <p style="font-size: 0.75em; color: #555; margin-top: 10px;" id="totalBeads"></p>
+                </div>
+            </aside>
+
+            <!-- Canvas Area -->
+            <div class="canvas-area" id="canvasArea">
+                <div class="canvas-toolbar">
+                    <div class="info" id="canvasInfo">
+                        等待上传图片...
+                    </div>
+                    <div class="zoom-controls">
+                        <button class="zoom-btn" id="zoomOut">−</button>
+                        <span class="zoom-level" id="zoomLevel">100%</span>
+                        <button class="zoom-btn" id="zoomIn">+</button>
+                        <button class="zoom-btn" id="zoomFit">⊞</button>
+                    </div>
+                </div>
+                <div class="canvas-wrapper" id="canvasWrapper">
+                    <div class="empty-state" id="emptyState">
+                        <div class="icon">🧩</div>
+                        <p>上传一张图片开始生成拼豆图纸</p>
+                    </div>
+                    <canvas id="beadCanvas" style="display: none;"></canvas>
+                </div>
+                <div class="loading-overlay" id="loadingOverlay">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden canvas for image processing -->
+    <canvas id="srcCanvas" style="display:none;"></canvas>
+
+    <script>
+        // ============================================================
+        // Perler Bead Standard Color Palette
+        // Approximate RGB values for common Perler/Hama bead colors
+        // ============================================================
+        const PERLER_PALETTE = [
+            { name: '白色',   hex: '#FFFFFF', r: 255, g: 255, b: 255 },
+            { name: '奶油色', hex: '#F5E6C8', r: 245, g: 230, b: 200 },
+            { name: '黄色',   hex: '#FFD700', r: 255, g: 215, b: 0 },
+            { name: '橙色',   hex: '#FF8C00', r: 255, g: 140, b: 0 },
+            { name: '红色',   hex: '#E60012', r: 230, g: 0,   b: 18 },
+            { name: '樱桃红', hex: '#C41E3A', r: 196, g: 30,  b: 58 },
+            { name: '深红',   hex: '#8B0000', r: 139, g: 0,   b: 0 },
+            { name: '粉色',   hex: '#FF69B4', r: 255, g: 105, b: 180 },
+            { name: '浅粉',   hex: '#FFB6C1', r: 255, g: 182, b: 193 },
+            { name: '薰衣草', hex: '#B57EDC', r: 181, g: 126, b: 220 },
+            { name: '紫色',   hex: '#800080', r: 128, g: 0,   b: 128 },
+            { name: '深紫',   hex: '#4B0082', r: 75,  g: 0,   b: 130 },
+            { name: '天蓝',   hex: '#87CEEB', r: 135, g: 206, b: 235 },
+            { name: '浅蓝',   hex: '#ADD8E6', r: 173, g: 216, b: 230 },
+            { name: '蓝色',   hex: '#0066CC', r: 0,   g: 102, b: 204 },
+            { name: '深蓝',   hex: '#00008B', r: 0,   g: 0,   b: 139 },
+            { name: '青色',   hex: '#00CED1', r: 0,   g: 206, b: 209 },
+            { name: '薄荷绿', hex: '#98FB98', r: 152, g: 251, b: 152 },
+            { name: '浅绿',   hex: '#90EE90', r: 144, g: 238, b: 144 },
+            { name: '绿色',   hex: '#228B22', r: 34,  g: 139, b: 34 },
+            { name: '深绿',   hex: '#006400', r: 0,   g: 100, b: 0 },
+            { name: '橄榄绿', hex: '#808000', r: 128, g: 128, b: 0 },
+            { name: '棕色',   hex: '#8B4513', r: 139, g: 69,  b: 19 },
+            { name: '浅棕',   hex: '#D2B48C', r: 210, g: 180, b: 140 },
+            { name: '驼色',   hex: '#C19A6B', r: 193, g: 154, b: 107 },
+            { name: '灰色',   hex: '#808080', r: 128, g: 128, b: 128 },
+            { name: '浅灰',   hex: '#C0C0C0', r: 192, g: 192, b: 192 },
+            { name: '深灰',   hex: '#404040', r: 64,  g: 64,  b: 64 },
+            { name: '黑色',   hex: '#000000', r: 0,   g: 0,   b: 0 },
+            { name: '桃色',   hex: '#FFDAB9', r: 255, g: 218, b: 185 },
+            { name: '肤色',   hex: '#FFCC99', r: 255, g: 204, b: 153 },
+            { name: '珊瑚色', hex: '#FF7F50', r: 255, g: 127, b: 80 },
+            { name: '酒红',   hex: '#722F37', r: 114, g: 47,  b: 55 },
+            { name: '锈色',   hex: '#B7410E', r: 183, g: 65,  b: 14 },
+            { name: '品红',   hex: '#FF00FF', r: 255, g: 0,   b: 255 },
+            { name: '荧光绿', hex: '#39FF14', r: 57,  g: 255, b: 20 },
+            { name: '荧光黄', hex: '#CCFF00', r: 204, g: 255, b: 0 },
+            { name: '荧光橙', hex: '#FF6600', r: 255, g: 102, b: 0 },
+        ];
+
+        // State
+        let sourceImage = null;
+        let beadData = []; // 2D array of palette colors
+        let zoomFactor = 1;
+        let canvasBaseWidth = 0;
+        let canvasBaseHeight = 0;
+
+        // DOM refs
+        const fileInput = document.getElementById('fileInput');
+        const uploadZone = document.getElementById('uploadZone');
+        const uploadPreview = document.getElementById('uploadPreview');
+        const uploadInfo = document.getElementById('uploadInfo');
+        const beadWidthInput = document.getElementById('beadWidth');
+        const beadHeightInput = document.getElementById('beadHeight');
+        const widthValue = document.getElementById('widthValue');
+        const heightValue = document.getElementById('heightValue');
+        const lockAspect = document.getElementById('lockAspect');
+        const showGrid = document.getElementById('showGrid');
+        const usePalette = document.getElementById('usePalette');
+        const showNumbers = document.getElementById('showNumbers');
+        const beadSizeInput = document.getElementById('beadSize');
+        const beadSizeValue = document.getElementById('beadSizeValue');
+        const generateBtn = document.getElementById('generateBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const downloadCSVBtn = document.getElementById('downloadCSVBtn');
+        const beadCanvas = document.getElementById('beadCanvas');
+        const emptyState = document.getElementById('emptyState');
+        const canvasInfo = document.getElementById('canvasInfo');
+        const colorStats = document.getElementById('colorStats');
+        const colorList = document.getElementById('colorList');
+        const totalBeads = document.getElementById('totalBeads');
+        const srcCanvas = document.getElementById('srcCanvas');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+
+        // ============================================================
+        // Find closest palette color using Euclidean distance in RGB
+        // ============================================================
+        function findClosestPaletteColor(r, g, b) {
+            let minDist = Infinity;
+            let closest = PERLER_PALETTE[0];
+            for (const c of PERLER_PALETTE) {
+                const dr = r - c.r;
+                const dg = g - c.g;
+                const db = b - c.b;
+                const dist = dr * dr + dg * dg + db * db;
+                if (dist < minDist) {
+                    minDist = dist;
+                    closest = c;
+                }
+            }
+            return closest;
+        }
+
+        // ============================================================
+        // Image Upload Handling
+        // ============================================================
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('drag-over');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('drag-over');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('drag-over');
+            if (e.dataTransfer.files.length > 0) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    sourceImage = img;
+                    uploadPreview.src = e.target.result;
+                    uploadPreview.style.display = 'block';
+                    uploadInfo.style.display = 'block';
+                    uploadInfo.textContent = `${img.naturalWidth} × ${img.naturalHeight}px · ${(file.size / 1024).toFixed(1)}KB`;
+                    generateBtn.disabled = false;
+
+                    // Set default resolution based on image aspect ratio
+                    if (lockAspect.checked) {
+                        const aspect = img.naturalWidth / img.naturalHeight;
+                        const w = parseInt(beadWidthInput.value);
+                        const h = Math.round(w / aspect);
+                        beadHeightInput.value = Math.min(120, Math.max(8, h));
+                        heightValue.textContent = beadHeightInput.value;
+                    }
+
+                    // Auto-generate on upload
+                    generatePattern();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // ============================================================
+        // Resolution Controls
+        // ============================================================
+        beadWidthInput.addEventListener('input', () => {
+            widthValue.textContent = beadWidthInput.value;
+            if (lockAspect.checked && sourceImage) {
+                const aspect = sourceImage.naturalWidth / sourceImage.naturalHeight;
+                const w = parseInt(beadWidthInput.value);
+                const h = Math.round(w / aspect);
+                beadHeightInput.value = Math.min(120, Math.max(8, h));
+                heightValue.textContent = beadHeightInput.value;
+            }
+        });
+
+        beadHeightInput.addEventListener('input', () => {
+            heightValue.textContent = beadHeightInput.value;
+            if (lockAspect.checked && sourceImage) {
+                const aspect = sourceImage.naturalWidth / sourceImage.naturalHeight;
+                const h = parseInt(beadHeightInput.value);
+                const w = Math.round(h * aspect);
+                beadWidthInput.value = Math.min(120, Math.max(8, w));
+                widthValue.textContent = beadWidthInput.value;
+            }
+        });
+
+        beadSizeInput.addEventListener('input', () => {
+            beadSizeValue.textContent = beadSizeInput.value;
+            if (beadData.length > 0) {
+                renderBeadPattern();
+            }
+        });
+
+        showGrid.addEventListener('change', () => {
+            if (beadData.length > 0) renderBeadPattern();
+        });
+
+        showNumbers.addEventListener('change', () => {
+            if (beadData.length > 0) renderBeadPattern();
+        });
+
+        usePalette.addEventListener('change', () => {
+            if (sourceImage) generatePattern();
+        });
+
+        // ============================================================
+        // Generate Pattern
+        // ============================================================
+        generateBtn.addEventListener('click', generatePattern);
+
+        function generatePattern() {
+            if (!sourceImage) return;
+
+            loadingOverlay.classList.add('active');
+
+            // Use requestAnimationFrame to allow the UI to update before heavy computation
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    const cols = parseInt(beadWidthInput.value);
+                    const rows = parseInt(beadHeightInput.value);
+                    const usePal = usePalette.checked;
+
+                    // Draw source image to hidden canvas at bead resolution
+                    srcCanvas.width = cols;
+                    srcCanvas.height = rows;
+                    const ctx = srcCanvas.getContext('2d');
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'medium';
+                    ctx.drawImage(sourceImage, 0, 0, cols, rows);
+
+                    // Read pixel data
+                    const imageData = ctx.getImageData(0, 0, cols, rows);
+                    const pixels = imageData.data;
+
+                    // Build bead data
+                    beadData = [];
+                    for (let y = 0; y < rows; y++) {
+                        const row = [];
+                        for (let x = 0; x < cols; x++) {
+                            const i = (y * cols + x) * 4;
+                            const r = pixels[i];
+                            const g = pixels[i + 1];
+                            const b = pixels[i + 2];
+                            const a = pixels[i + 3];
+
+                            if (usePal) {
+                                const closest = findClosestPaletteColor(r, g, b);
+                                row.push(closest);
+                            } else {
+                                const hex = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+                                row.push({ name: hex, hex, r, g, b });
+                            }
+                        }
+                        beadData.push(row);
+                    }
+
+                    renderBeadPattern();
+                    updateColorStats();
+                    updateCanvasInfo();
+
+                    emptyState.style.display = 'none';
+                    beadCanvas.style.display = 'block';
+                    downloadBtn.disabled = false;
+                    downloadCSVBtn.disabled = false;
+
+                    loadingOverlay.classList.remove('active');
+                }, 50);
+            });
+        }
+
+        // ============================================================
+        // Render Bead Pattern on Canvas
+        // ============================================================
+        function renderBeadPattern() {
+            const beadSize = parseInt(beadSizeInput.value);
+            const rows = beadData.length;
+            const cols = beadData[0].length;
+            const gap = showGrid.checked ? 1 : 0;
+            const cellSize = beadSize + gap;
+
+            canvasBaseWidth = cols * cellSize;
+            canvasBaseHeight = rows * cellSize;
+
+            const w = Math.round(canvasBaseWidth * zoomFactor);
+            const h = Math.round(canvasBaseHeight * zoomFactor);
+
+            beadCanvas.width = w;
+            beadCanvas.height = h;
+
+            const ctx = beadCanvas.getContext('2d');
+            ctx.imageSmoothingEnabled = false;
+
+            // Background
+            ctx.fillStyle = '#2a2a3e';
+            ctx.fillRect(0, 0, w, h);
+
+            ctx.save();
+            ctx.scale(zoomFactor, zoomFactor);
+
+            // Draw each bead
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    const color = beadData[y][x];
+                    const cx = x * cellSize + cellSize / 2;
+                    const cy = y * cellSize + cellSize / 2;
+                    const radius = beadSize / 2;
+
+                    // Bead body (circle with hole)
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                    ctx.fillStyle = color.hex;
+                    ctx.fill();
+
+                    // Highlight (subtle shine)
+                    const gradient = ctx.createRadialGradient(
+                        cx - radius * 0.3, cy - radius * 0.3, 0,
+                        cx, cy, radius
+                    );
+                    gradient.addColorStop(0, 'rgba(255,255,255,0.25)');
+                    gradient.addColorStop(0.6, 'rgba(255,255,255,0.05)');
+                    gradient.addColorStop(1, 'rgba(0,0,0,0.1)');
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                    ctx.fillStyle = gradient;
+                    ctx.fill();
+
+                    // Center hole
+                    const holeRadius = radius * 0.22;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, holeRadius, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+                    ctx.fill();
+
+                    // Grid lines
+                    if (showGrid.checked) {
+                        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+                        ctx.lineWidth = 0.5;
+                        ctx.strokeRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                    }
+
+                    // Color number
+                    if (showNumbers.checked && beadSize >= 10) {
+                        const idx = PERLER_PALETTE.findIndex(p => p.hex === color.hex);
+                        if (idx !== -1) {
+                            ctx.fillStyle = getContrastColor(color.r, color.g, color.b);
+                            ctx.font = `${Math.max(6, beadSize * 0.35)}px monospace`;
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(idx + 1, cx, cy);
+                        }
+                    }
+                }
+            }
+
+            ctx.restore();
+        }
+
+        function getContrastColor(r, g, b) {
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            return luminance > 0.5 ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.8)';
+        }
+
+        // ============================================================
+        // Color Statistics
+        // ============================================================
+        function updateColorStats() {
+            const counts = {};
+            let total = 0;
+
+            for (const row of beadData) {
+                for (const color of row) {
+                    const key = color.hex;
+                    if (!counts[key]) {
+                        counts[key] = { ...color, count: 0 };
+                    }
+                    counts[key].count++;
+                    total++;
+                }
+            }
+
+            const sorted = Object.values(counts).sort((a, b) => b.count - a.count);
+
+            colorList.innerHTML = sorted.map(c => `
+                <div class="color-item">
+                    <div class="color-swatch" style="background: ${c.hex}"></div>
+                    <span class="color-hex">${c.hex}</span>
+                    <span style="color:#aaa; font-size:0.75em;">${c.name}</span>
+                    <span class="color-count">${c.count} 颗</span>
+                </div>
+            `).join('');
+
+            totalBeads.textContent = `共计 ${total} 颗拼豆 · ${sorted.length} 种颜色`;
+            colorStats.style.display = 'block';
+        }
+
+        function updateCanvasInfo() {
+            const rows = beadData.length;
+            const cols = beadData[0].length;
+            canvasInfo.innerHTML = `图纸尺寸: <span>${cols}</span> × <span>${rows}</span> · 总计 <span>${cols * rows}</span> 颗拼豆`;
+        }
+
+        // ============================================================
+        // Zoom Controls
+        // ============================================================
+        document.getElementById('zoomIn').addEventListener('click', () => {
+            zoomFactor = Math.min(5, zoomFactor + 0.25);
+            updateZoom();
+        });
+
+        document.getElementById('zoomOut').addEventListener('click', () => {
+            zoomFactor = Math.max(0.25, zoomFactor - 0.25);
+            updateZoom();
+        });
+
+        document.getElementById('zoomFit').addEventListener('click', () => {
+            const wrapper = document.getElementById('canvasWrapper');
+            const ww = wrapper.clientWidth - 20;
+            const wh = wrapper.clientHeight - 20;
+            if (canvasBaseWidth > 0) {
+                const scaleW = ww / canvasBaseWidth;
+                const scaleH = wh / canvasBaseHeight;
+                zoomFactor = Math.min(scaleW, scaleH, 3);
+                zoomFactor = Math.max(0.25, Math.round(zoomFactor * 4) / 4);
+            }
+            updateZoom();
+        });
+
+        function updateZoom() {
+            document.getElementById('zoomLevel').textContent = Math.round(zoomFactor * 100) + '%';
+            if (beadData.length > 0) {
+                renderBeadPattern();
+            }
+        }
+
+        // ============================================================
+        // Download as PNG
+        // ============================================================
+        downloadBtn.addEventListener('click', () => {
+            if (beadData.length === 0) return;
+
+            // Render at 1:1 for download (no zoom, clean output)
+            const beadSize = parseInt(beadSizeInput.value);
+            const rows = beadData.length;
+            const cols = beadData[0].length;
+            const gap = 1;
+            const cellSize = beadSize + gap;
+
+            const exportCanvas = document.createElement('canvas');
+            exportCanvas.width = cols * cellSize;
+            exportCanvas.height = rows * cellSize;
+            const ctx = exportCanvas.getContext('2d');
+
+            // White background
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+
+            // Draw beads
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    const color = beadData[y][x];
+                    const cx = x * cellSize + cellSize / 2;
+                    const cy = y * cellSize + cellSize / 2;
+                    const radius = beadSize / 2;
+
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                    ctx.fillStyle = color.hex;
+                    ctx.fill();
+
+                    // Center hole
+                    const holeRadius = radius * 0.22;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, holeRadius, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+                    ctx.fill();
+                }
+            }
+
+            const link = document.createElement('a');
+            link.download = `perler-bead-pattern-${cols}x${rows}.png`;
+            link.href = exportCanvas.toDataURL('image/png');
+            link.click();
+        });
+
+        // ============================================================
+        // Export Color Stats as CSV
+        // ============================================================
+        downloadCSVBtn.addEventListener('click', () => {
+            if (beadData.length === 0) return;
+
+            const counts = {};
+            for (const row of beadData) {
+                for (const color of row) {
+                    const key = color.hex;
+                    if (!counts[key]) counts[key] = { ...color, count: 0 };
+                    counts[key].count++;
+                }
+            }
+
+            const sorted = Object.values(counts).sort((a, b) => b.count - a.count);
+            let csv = '颜色名称,HEX,RGB,数量\n';
+            for (const c of sorted) {
+                csv += `${c.name},${c.hex},"${c.r},${c.g},${c.b}",${c.count}\n`;
+            }
+
+            const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+            const link = document.createElement('a');
+            link.download = `perler-bead-colors-${beadData[0].length}x${beadData.length}.csv`;
+            link.href = URL.createObjectURL(blob);
+            link.click();
+        });
+    </script>
+</body>
+</html>
