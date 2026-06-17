@@ -10,7 +10,7 @@ import { OpenAIEmbedding } from '@llamaindex/openai'
 import { Settings } from '@llamaindex/core/global'
 
 // ─── 本地模块 ────────────────────────────────────────────────────────
-import llm from '../llm.ts'
+import llm, { tokenTracker } from '../llm.ts'
 import { FixedSizeChunk, SemanticChunk, RecursiveChunk, LLMChunk, SentenceSplitter, TokenTextSplitter, SentenceWindowNodeParser } from "../check/index.ts";
 import { FILE_DIR, STORAGE_DIR, CACHE_NAIVE } from "../constants.ts";
 

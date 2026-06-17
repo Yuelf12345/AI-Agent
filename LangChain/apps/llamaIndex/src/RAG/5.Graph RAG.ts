@@ -26,7 +26,7 @@ import { OpenAIEmbedding } from '@llamaindex/openai'
 import { Settings } from '@llamaindex/core/global'
 
 // ─── 本地模块 ────────────────────────────────────────────────────────
-import llm from '../llm.ts'
+import llm, { tokenTracker } from '../llm.ts'
 import { LLMChunk } from "../check/index.ts";
 import { FILE_DIR, CACHE_NAIVE, CACHE_GRAPH_INDEX } from "../constants.ts";
 
@@ -927,6 +927,7 @@ async function chatLoop() {
       if (!query || ["exit","quit"].includes(query.toLowerCase())) {
         console.log("\n👋 再见！");
         rl.close();
+        tokenTracker.printUsage();
         break;
       }
 
