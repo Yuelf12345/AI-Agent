@@ -1,0 +1,2614 @@
+{
+  "graphEdges": [
+    {
+      "subject": "CRISPE框架",
+      "relation": "适用于",
+      "object": "需要明确角色和任务的场景"
+    },
+    {
+      "subject": "CRISPE框架",
+      "relation": "适用于",
+      "object": "缓存优化方案设计任务"
+    },
+    {
+      "subject": "CRISPE框架",
+      "relation": "包含",
+      "object": "C（CapacityandRole）"
+    },
+    { "subject": "CRISPE框架", "relation": "包含", "object": "R（Insight）" },
+    { "subject": "CRISPE框架", "relation": "包含", "object": "S（Statement）" },
+    {
+      "subject": "CRISPE框架",
+      "relation": "包含",
+      "object": "P（Personality）"
+    },
+    {
+      "subject": "CRISPE框架",
+      "relation": "包含",
+      "object": "E（Experiment）"
+    },
+    { "subject": "CRISPE框架", "relation": "包含", "object": "五个核心要素" },
+    {
+      "subject": "CRISPE框架",
+      "relation": "被包括",
+      "object": "常用提示词框架"
+    },
+    {
+      "subject": "CRISPE框架",
+      "relation": "推荐用于",
+      "object": "创意生成场景"
+    },
+    { "subject": "CRISPE框架", "relation": "是", "object": "常用提示词框架" },
+    {
+      "subject": "CRISPE框架",
+      "relation": "组合使用",
+      "object": "CoT推理技术"
+    },
+    {
+      "subject": "CRISPE框架",
+      "relation": "角色部分指定",
+      "object": "系统架构师"
+    },
+    {
+      "subject": "CRISPE框架",
+      "relation": "约束部分指定",
+      "object": "技术文档格式输出"
+    },
+    {
+      "subject": "CRISPE框架",
+      "relation": "期望部分指定",
+      "object": "提供3个方案"
+    },
+    {
+      "subject": "需要明确角色和任务的场景",
+      "relation": "被适用于",
+      "object": "CRISPE框架"
+    },
+    {
+      "subject": "C（CapacityandRole）",
+      "relation": "被包含",
+      "object": "CRISPE框架"
+    },
+    { "subject": "R（Insight）", "relation": "被包含", "object": "CRISPE框架" },
+    {
+      "subject": "S（Statement）",
+      "relation": "被包含",
+      "object": "CRISPE框架"
+    },
+    {
+      "subject": "P（Personality）",
+      "relation": "被包含",
+      "object": "CRISPE框架"
+    },
+    {
+      "subject": "E（Experiment）",
+      "relation": "被包含",
+      "object": "CRISPE框架"
+    },
+    {
+      "subject": "首尾的提示词",
+      "relation": "对……影响更大",
+      "object": "LLM的输出结果"
+    },
+    {
+      "subject": "LLM的输出结果",
+      "relation": "被对……影响更大",
+      "object": "首尾的提示词"
+    },
+    { "subject": "常用提示词框架", "relation": "包括", "object": "CRISPE框架" },
+    { "subject": "常用提示词框架", "relation": "包括", "object": "BROKE框架" },
+    { "subject": "常用提示词框架", "relation": "包括", "object": "COSTAR框架" },
+    { "subject": "常用提示词框架", "relation": "包括", "object": "RISEN框架" },
+    { "subject": "常用提示词框架", "relation": "包括", "object": "APE框架" },
+    { "subject": "常用提示词框架", "relation": "包括", "object": "RASCEF框架" },
+    { "subject": "常用提示词框架", "relation": "包括", "object": "TAG框架" },
+    { "subject": "常用提示词框架", "relation": "被是", "object": "CRISPE框架" },
+    { "subject": "常用提示词框架", "relation": "被是", "object": "BROKE框架" },
+    { "subject": "常用提示词框架", "relation": "被是", "object": "COSTAR框架" },
+    { "subject": "常用提示词框架", "relation": "区别于", "object": "推理技术" },
+    {
+      "subject": "常用提示词框架",
+      "relation": "功能是",
+      "object": "组织和构建提示词的结构化模板"
+    },
+    {
+      "subject": "BROKE框架",
+      "relation": "被包括",
+      "object": "常用提示词框架"
+    },
+    {
+      "subject": "BROKE框架",
+      "relation": "适用于",
+      "object": "需要深度思考和推理的场景"
+    },
+    { "subject": "BROKE框架", "relation": "适用于", "object": "目标设定场景" },
+    {
+      "subject": "BROKE框架",
+      "relation": "包含",
+      "object": "B(Background)-背景信息"
+    },
+    {
+      "subject": "BROKE框架",
+      "relation": "包含",
+      "object": "R(Role)-角色设定"
+    },
+    {
+      "subject": "BROKE框架",
+      "relation": "包含",
+      "object": "O(Objectives)-目标任务"
+    },
+    {
+      "subject": "BROKE框架",
+      "relation": "包含",
+      "object": "K(KeyResult)-关键结果"
+    },
+    {
+      "subject": "BROKE框架",
+      "relation": "包含",
+      "object": "E(Evolve)-迭代优化"
+    },
+    {
+      "subject": "BROKE框架",
+      "relation": "推荐用于",
+      "object": "技术开发场景"
+    },
+    { "subject": "BROKE框架", "relation": "是", "object": "常用提示词框架" },
+    {
+      "subject": "COSTAR框架",
+      "relation": "被包括",
+      "object": "常用提示词框架"
+    },
+    {
+      "subject": "COSTAR框架",
+      "relation": "适用于",
+      "object": "复杂任务的系统性处理"
+    },
+    {
+      "subject": "COSTAR框架",
+      "relation": "包含",
+      "object": "C(Context)-上下文"
+    },
+    {
+      "subject": "COSTAR框架",
+      "relation": "包含",
+      "object": "O(Objective)-目标"
+    },
+    { "subject": "COSTAR框架", "relation": "包含", "object": "S(Style)-风格" },
+    { "subject": "COSTAR框架", "relation": "包含", "object": "T(Tone)-语气" },
+    {
+      "subject": "COSTAR框架",
+      "relation": "包含",
+      "object": "A(Audience)-受众"
+    },
+    {
+      "subject": "COSTAR框架",
+      "relation": "包含",
+      "object": "R(Response)-响应格式"
+    },
+    {
+      "subject": "COSTAR框架",
+      "relation": "推荐用于",
+      "object": "文案撰写场景"
+    },
+    { "subject": "COSTAR框架", "relation": "考虑", "object": "受众" },
+    { "subject": "COSTAR框架", "relation": "考虑", "object": "风格" },
+    { "subject": "COSTAR框架", "relation": "是", "object": "常用提示词框架" },
+    {
+      "subject": "RISEN框架",
+      "relation": "被包括",
+      "object": "常用提示词框架"
+    },
+    {
+      "subject": "RISEN框架",
+      "relation": "适用于",
+      "object": "需要精准输出的场景"
+    },
+    {
+      "subject": "RISEN框架",
+      "relation": "适用于",
+      "object": "产品方案设计任务"
+    },
+    { "subject": "RISEN框架", "relation": "包含", "object": "五个核心要素" },
+    {
+      "subject": "RISEN框架",
+      "relation": "推荐用于",
+      "object": "技术开发场景"
+    },
+    { "subject": "RISEN框架", "relation": "组合使用", "object": "ToT推理技术" },
+    {
+      "subject": "RISEN框架",
+      "relation": "角色部分指定",
+      "object": "产品经理"
+    },
+    {
+      "subject": "RISEN框架",
+      "relation": "输入部分指定",
+      "object": "用户调研数据"
+    },
+    {
+      "subject": "RISEN框架",
+      "relation": "步骤部分指定",
+      "object": "探索3种产品方向"
+    },
+    {
+      "subject": "RISEN框架",
+      "relation": "约束部分指定",
+      "object": "3个月内上线"
+    },
+    { "subject": "APE框架", "relation": "被包括", "object": "常用提示词框架" },
+    {
+      "subject": "APE框架",
+      "relation": "适用于",
+      "object": "需要创意和行动方案的场景"
+    },
+    { "subject": "APE框架", "relation": "包含", "object": "三个核心要素" },
+    { "subject": "APE框架", "relation": "推荐用于", "object": "创意生成场景" },
+    {
+      "subject": "RASCEF框架",
+      "relation": "被包括",
+      "object": "常用提示词框架"
+    },
+    { "subject": "RASCEF框架", "relation": "适用于", "object": "结构化输出" },
+    { "subject": "RASCEF框架", "relation": "适用于", "object": "专业文档" },
+    { "subject": "RASCEF框架", "relation": "包含", "object": "角色" },
+    { "subject": "RASCEF框架", "relation": "包含", "object": "行动" },
+    { "subject": "RASCEF框架", "relation": "包含", "object": "步骤" },
+    { "subject": "RASCEF框架", "relation": "包含", "object": "情境" },
+    { "subject": "RASCEF框架", "relation": "包含", "object": "示例" },
+    { "subject": "RASCEF框架", "relation": "包含", "object": "格式" },
+    { "subject": "RASCEF框架", "relation": "规范", "object": "格式" },
+    { "subject": "RASCEF框架", "relation": "保证", "object": "结构完整" },
+    { "subject": "TAG框架", "relation": "被包括", "object": "常用提示词框架" },
+    { "subject": "TAG框架", "relation": "适用于", "object": "快速迭代的场景" },
+    { "subject": "TAG框架", "relation": "包含", "object": "任务" },
+    { "subject": "TAG框架", "relation": "包含", "object": "行动" },
+    { "subject": "TAG框架", "relation": "包含", "object": "目标" },
+    { "subject": "TAG框架", "relation": "包含", "object": "T(Task)" },
+    { "subject": "TAG框架", "relation": "包含", "object": "A(Action)" },
+    { "subject": "TAG框架", "relation": "包含", "object": "G(Goal)" },
+    { "subject": "TAG框架", "relation": "强调", "object": "目标导向" },
+    { "subject": "TAG框架", "relation": "支持", "object": "快速迭代" },
+    {
+      "subject": "需要深度思考和推理的场景",
+      "relation": "被适用于",
+      "object": "BROKE框架"
+    },
+    {
+      "subject": "B(Background)-背景信息",
+      "relation": "被包含",
+      "object": "BROKE框架"
+    },
+    {
+      "subject": "R(Role)-角色设定",
+      "relation": "被包含",
+      "object": "BROKE框架"
+    },
+    {
+      "subject": "R(Role)-角色设定",
+      "relation": "被包含",
+      "object": "RACE框架"
+    },
+    { "subject": "R(Role)-角色设定", "relation": "表示", "object": "角色" },
+    {
+      "subject": "O(Objectives)-目标任务",
+      "relation": "被包含",
+      "object": "BROKE框架"
+    },
+    {
+      "subject": "K(KeyResult)-关键结果",
+      "relation": "被包含",
+      "object": "BROKE框架"
+    },
+    {
+      "subject": "E(Evolve)-迭代优化",
+      "relation": "被包含",
+      "object": "BROKE框架"
+    },
+    {
+      "subject": "复杂任务的系统性处理",
+      "relation": "被适用于",
+      "object": "COSTAR框架"
+    },
+    {
+      "subject": "C(Context)-上下文",
+      "relation": "被包含",
+      "object": "COSTAR框架"
+    },
+    {
+      "subject": "C(Context)-上下文",
+      "relation": "被包含",
+      "object": "RACE框架"
+    },
+    { "subject": "C(Context)-上下文", "relation": "表示", "object": "上下文" },
+    {
+      "subject": "O(Objective)-目标",
+      "relation": "被包含",
+      "object": "COSTAR框架"
+    },
+    {
+      "subject": "S(Style)-风格",
+      "relation": "被包含",
+      "object": "COSTAR框架"
+    },
+    { "subject": "T(Tone)-语气", "relation": "被包含", "object": "COSTAR框架" },
+    {
+      "subject": "A(Audience)-受众",
+      "relation": "被包含",
+      "object": "COSTAR框架"
+    },
+    {
+      "subject": "R(Response)-响应格式",
+      "relation": "被包含",
+      "object": "COSTAR框架"
+    },
+    {
+      "subject": "需要精准输出的场景",
+      "relation": "被适用于",
+      "object": "RISEN框架"
+    },
+    { "subject": "五个核心要素", "relation": "被包含", "object": "RISEN框架" },
+    { "subject": "五个核心要素", "relation": "被包含", "object": "CRISPE框架" },
+    { "subject": "R", "relation": "表示", "object": "角色" },
+    { "subject": "角色", "relation": "被表示", "object": "R" },
+    { "subject": "角色", "relation": "被表示", "object": "R(Role)-角色设定" },
+    { "subject": "角色", "relation": "被包含", "object": "RASCEF框架" },
+    { "subject": "角色", "relation": "是", "object": "RASCEF框架的组成部分" },
+    { "subject": "角色", "relation": "是", "object": "R(Role)的语义解释" },
+    { "subject": "I", "relation": "表示", "object": "输入信息" },
+    { "subject": "输入信息", "relation": "被表示", "object": "I" },
+    { "subject": "S", "relation": "表示", "object": "执行步骤" },
+    { "subject": "执行步骤", "relation": "被表示", "object": "S" },
+    { "subject": "E", "relation": "表示", "object": "期望结果" },
+    { "subject": "E", "relation": "表示", "object": "期望效果" },
+    { "subject": "期望结果", "relation": "被表示", "object": "E" },
+    { "subject": "N", "relation": "表示", "object": "约束条件" },
+    { "subject": "约束条件", "relation": "被表示", "object": "N" },
+    {
+      "subject": "需要创意和行动方案的场景",
+      "relation": "被适用于",
+      "object": "APE框架"
+    },
+    { "subject": "三个核心要素", "relation": "被包含", "object": "APE框架" },
+    { "subject": "A", "relation": "表示", "object": "行动指令" },
+    { "subject": "行动指令", "relation": "被表示", "object": "A" },
+    { "subject": "P", "relation": "表示", "object": "目的意图" },
+    { "subject": "目的意图", "relation": "被表示", "object": "P" },
+    { "subject": "期望效果", "relation": "被表示", "object": "E" },
+    { "subject": "结构化输出", "relation": "被适用于", "object": "RASCEF框架" },
+    { "subject": "专业文档", "relation": "被适用于", "object": "RASCEF框架" },
+    { "subject": "行动", "relation": "被包含", "object": "RASCEF框架" },
+    { "subject": "行动", "relation": "被包含", "object": "TAG框架" },
+    { "subject": "行动", "relation": "是", "object": "RASCEF框架的组成部分" },
+    { "subject": "行动", "relation": "是", "object": "TAG框架的组成部分" },
+    { "subject": "行动", "relation": "是", "object": "A(Action)的语义解释" },
+    { "subject": "行动", "relation": "被表示", "object": "A(Action)" },
+    { "subject": "步骤", "relation": "被包含", "object": "RASCEF框架" },
+    { "subject": "步骤", "relation": "是", "object": "RASCEF框架的组成部分" },
+    { "subject": "情境", "relation": "被包含", "object": "RASCEF框架" },
+    { "subject": "情境", "relation": "是", "object": "RASCEF框架的组成部分" },
+    { "subject": "示例", "relation": "被包含", "object": "RASCEF框架" },
+    { "subject": "示例", "relation": "是", "object": "RASCEF框架的组成部分" },
+    { "subject": "示例", "relation": "是", "object": "E(Example)的语义解释" },
+    { "subject": "示例", "relation": "被表示", "object": "E(Example)" },
+    { "subject": "格式", "relation": "被包含", "object": "RASCEF框架" },
+    { "subject": "格式", "relation": "是", "object": "RASCEF框架的组成部分" },
+    { "subject": "格式", "relation": "被规范", "object": "RASCEF框架" },
+    {
+      "subject": "快速迭代的场景",
+      "relation": "被适用于",
+      "object": "TAG框架"
+    },
+    { "subject": "任务", "relation": "被包含", "object": "TAG框架" },
+    { "subject": "任务", "relation": "是", "object": "TAG框架的组成部分" },
+    { "subject": "目标", "relation": "被包含", "object": "TAG框架" },
+    { "subject": "目标", "relation": "是", "object": "TAG框架的组成部分" },
+    { "subject": "RASCEF框架的组成部分", "relation": "被是", "object": "角色" },
+    { "subject": "RASCEF框架的组成部分", "relation": "被是", "object": "行动" },
+    { "subject": "RASCEF框架的组成部分", "relation": "被是", "object": "步骤" },
+    { "subject": "RASCEF框架的组成部分", "relation": "被是", "object": "情境" },
+    { "subject": "RASCEF框架的组成部分", "relation": "被是", "object": "示例" },
+    { "subject": "RASCEF框架的组成部分", "relation": "被是", "object": "格式" },
+    { "subject": "TAG框架的组成部分", "relation": "被是", "object": "任务" },
+    { "subject": "TAG框架的组成部分", "relation": "被是", "object": "行动" },
+    { "subject": "TAG框架的组成部分", "relation": "被是", "object": "目标" },
+    { "subject": "RACE框架", "relation": "适用于", "object": "问题解决场景" },
+    { "subject": "RACE框架", "relation": "适用于", "object": "问题解决" },
+    { "subject": "RACE框架", "relation": "包含", "object": "A(Action)" },
+    { "subject": "RACE框架", "relation": "包含", "object": "E(Example)" },
+    { "subject": "RACE框架", "relation": "包含", "object": "R(Role)-角色设定" },
+    {
+      "subject": "RACE框架",
+      "relation": "包含",
+      "object": "C(Context)-上下文"
+    },
+    { "subject": "问题解决场景", "relation": "被适用于", "object": "RACE框架" },
+    { "subject": "A(Action)", "relation": "被包含", "object": "RACE框架" },
+    { "subject": "A(Action)", "relation": "被包含", "object": "TAG框架" },
+    { "subject": "A(Action)", "relation": "表示", "object": "行动" },
+    { "subject": "E(Example)", "relation": "被包含", "object": "RACE框架" },
+    { "subject": "E(Example)", "relation": "表示", "object": "示例" },
+    {
+      "subject": "上下文",
+      "relation": "被表示",
+      "object": "C(Context)-上下文"
+    },
+    { "subject": "上下文", "relation": "是", "object": "C(Context)的语义解释" },
+    { "subject": "R(Role)的语义解释", "relation": "被是", "object": "角色" },
+    { "subject": "A(Action)的语义解释", "relation": "被是", "object": "行动" },
+    {
+      "subject": "C(Context)的语义解释",
+      "relation": "被是",
+      "object": "上下文"
+    },
+    { "subject": "E(Example)的语义解释", "relation": "被是", "object": "示例" },
+    {
+      "subject": "RedisCluster",
+      "relation": "是",
+      "object": "示例中参考的实现"
+    },
+    {
+      "subject": "RedisCluster",
+      "relation": "实现",
+      "object": "分布式缓存方案"
+    },
+    {
+      "subject": "RedisCluster",
+      "relation": "提供参考",
+      "object": "设计分布式缓存方案"
+    },
+    {
+      "subject": "示例中参考的实现",
+      "relation": "被是",
+      "object": "RedisCluster"
+    },
+    {
+      "subject": "分布式缓存方案",
+      "relation": "被实现",
+      "object": "RedisCluster"
+    },
+    { "subject": "T(Task)", "relation": "被包含", "object": "TAG框架" },
+    { "subject": "G(Goal)", "relation": "被包含", "object": "TAG框架" },
+    {
+      "subject": "创意生成场景",
+      "relation": "被推荐用于",
+      "object": "CRISPE框架"
+    },
+    {
+      "subject": "创意生成场景",
+      "relation": "被推荐用于",
+      "object": "APE框架"
+    },
+    {
+      "subject": "技术开发场景",
+      "relation": "被推荐用于",
+      "object": "RISEN框架"
+    },
+    {
+      "subject": "技术开发场景",
+      "relation": "被推荐用于",
+      "object": "BROKE框架"
+    },
+    {
+      "subject": "文案撰写场景",
+      "relation": "被推荐用于",
+      "object": "COSTAR框架"
+    },
+    {
+      "subject": "系统架构师",
+      "relation": "执行",
+      "object": "设计分布式缓存方案"
+    },
+    {
+      "subject": "系统架构师",
+      "relation": "被角色部分指定",
+      "object": "CRISPE框架"
+    },
+    {
+      "subject": "设计分布式缓存方案",
+      "relation": "被执行",
+      "object": "系统架构师"
+    },
+    {
+      "subject": "设计分布式缓存方案",
+      "relation": "被提供参考",
+      "object": "RedisCluster"
+    },
+    { "subject": "受众", "relation": "被考虑", "object": "COSTAR框架" },
+    { "subject": "风格", "relation": "被考虑", "object": "COSTAR框架" },
+    { "subject": "问题解决", "relation": "被适用于", "object": "RACE框架" },
+    { "subject": "目标导向", "relation": "被强调", "object": "TAG框架" },
+    { "subject": "快速迭代", "relation": "被支持", "object": "TAG框架" },
+    { "subject": "结构完整", "relation": "被保证", "object": "RASCEF框架" },
+    { "subject": "推理技术", "relation": "被是", "object": "GoT技术" },
+    { "subject": "推理技术", "relation": "被是", "object": "CoT推理技术" },
+    { "subject": "推理技术", "relation": "被是", "object": "ToT推理技术" },
+    {
+      "subject": "推理技术",
+      "relation": "被区别于",
+      "object": "常用提示词框架"
+    },
+    {
+      "subject": "推理技术",
+      "relation": "功能是",
+      "object": "引导AI进行思考和推理"
+    },
+    { "subject": "GoT技术", "relation": "是", "object": "推理技术" },
+    {
+      "subject": "GoT技术",
+      "relation": "核心是",
+      "object": "允许思维节点之间相互（连接）"
+    },
+    {
+      "subject": "GoT技术",
+      "relation": "适用于",
+      "object": "复杂系统分析任务"
+    },
+    { "subject": "GoT技术", "relation": "具有", "object": "高技术复杂度" },
+    { "subject": "GoT技术", "relation": "具有", "object": "最高准确性" },
+    {
+      "subject": "逐步展示推理过程",
+      "relation": "被核心机制",
+      "object": "CoT推理技术"
+    },
+    {
+      "subject": "直接指令",
+      "relation": "被触发方式",
+      "object": "CoT推理技术"
+    },
+    {
+      "subject": "Few-shot示例",
+      "relation": "被触发方式",
+      "object": "CoT推理技术"
+    },
+    {
+      "subject": "首尾强化策略",
+      "relation": "要求",
+      "object": "关键信息放在开头和结尾"
+    },
+    {
+      "subject": "关键信息放在开头和结尾",
+      "relation": "被要求",
+      "object": "首尾强化策略"
+    },
+    { "subject": "具体化策略", "relation": "要求", "object": "避免模糊表述" },
+    { "subject": "具体化策略", "relation": "要求", "object": "提供具体示例" },
+    { "subject": "避免模糊表述", "relation": "被要求", "object": "具体化策略" },
+    { "subject": "提供具体示例", "relation": "被要求", "object": "具体化策略" },
+    {
+      "subject": "分步引导策略",
+      "relation": "将",
+      "object": "复杂任务拆解为多个步骤"
+    },
+    {
+      "subject": "复杂任务拆解为多个步骤",
+      "relation": "被将",
+      "object": "分步引导策略"
+    },
+    {
+      "subject": "复杂任务拆解为多个步骤",
+      "relation": "适用",
+      "object": "[分析当前状态]行动:[执行一个操作]观察:[查看结果]思考:[基于结果继续分析]行动:[下一步操作]..."
+    },
+    {
+      "subject": "约束条件策略",
+      "relation": "要求",
+      "object": "明确字数、格式、风格等限制"
+    },
+    {
+      "subject": "明确字数、格式、风格等限制",
+      "relation": "被要求",
+      "object": "约束条件策略"
+    },
+    {
+      "subject": "Few-shot学习策略",
+      "relation": "要求",
+      "object": "提供2-3个示例参考"
+    },
+    {
+      "subject": "提供2-3个示例参考",
+      "relation": "被要求",
+      "object": "Few-shot学习策略"
+    },
+    { "subject": "常见误区", "relation": "包括", "object": "过于简短" },
+    { "subject": "常见误区", "relation": "包括", "object": "缺少上下文" },
+    {
+      "subject": "常见误区",
+      "relation": "包括",
+      "object": "一次性提出多个不相关任务"
+    },
+    {
+      "subject": "常见误区",
+      "relation": "包括",
+      "object": "没有明确输出格式要求"
+    },
+    {
+      "subject": "常见误区",
+      "relation": "包括",
+      "object": "忽略角色和受众设定"
+    },
+    {
+      "subject": "常见误区",
+      "relation": "包括",
+      "object": "忽略验证和迭代机制"
+    },
+    {
+      "subject": "常见误区",
+      "relation": "包括",
+      "object": "期望一次性解决复杂问题"
+    },
+    { "subject": "常见误区", "relation": "包括", "object": "不给任何示例" },
+    { "subject": "常见误区", "relation": "包括", "object": "只要结果不要过程" },
+    { "subject": "常见误区", "relation": "包括", "object": "混淆框架和技术" },
+    { "subject": "过于简短", "relation": "被包括", "object": "常见误区" },
+    { "subject": "缺少上下文", "relation": "被包括", "object": "常见误区" },
+    {
+      "subject": "一次性提出多个不相关任务",
+      "relation": "被包括",
+      "object": "常见误区"
+    },
+    {
+      "subject": "没有明确输出格式要求",
+      "relation": "被包括",
+      "object": "常见误区"
+    },
+    {
+      "subject": "忽略角色和受众设定",
+      "relation": "被包括",
+      "object": "常见误区"
+    },
+    {
+      "subject": "忽略验证和迭代机制",
+      "relation": "被包括",
+      "object": "常见误区"
+    },
+    {
+      "subject": "组织和构建提示词的结构化模板",
+      "relation": "被功能是",
+      "object": "常用提示词框架"
+    },
+    {
+      "subject": "引导AI进行思考和推理",
+      "relation": "被功能是",
+      "object": "推理技术"
+    },
+    {
+      "subject": "探索多个可能的推理路径",
+      "relation": "被核心是",
+      "object": "ToT推理技术"
+    },
+    {
+      "subject": "探索多个可能的推理路径",
+      "relation": "被核心为",
+      "object": "Self-Consistency"
+    },
+    {
+      "subject": "请探索多个解决方案",
+      "relation": "被触发方式是",
+      "object": "ToT推理技术"
+    },
+    {
+      "subject": "创意头脑风暴",
+      "relation": "被适用于",
+      "object": "ToT推理技术"
+    },
+    { "subject": "战略规划", "relation": "被适用于", "object": "ToT推理技术" },
+    { "subject": "算法设计", "relation": "被适用于", "object": "ToT推理技术" },
+    {
+      "subject": "多方案对比",
+      "relation": "被适用于",
+      "object": "ToT推理技术"
+    },
+    {
+      "subject": "允许思维节点之间相互（连接）",
+      "relation": "被核心是",
+      "object": "GoT技术"
+    },
+    {
+      "subject": "目标设定场景",
+      "relation": "被适用于",
+      "object": "BROKE框架"
+    },
+    {
+      "subject": "图状思考",
+      "relation": "允许",
+      "object": "允许思维节点之间相互引用和合并"
+    },
+    {
+      "subject": "图状思考",
+      "relation": "具有核心特征",
+      "object": "更灵活的推理网络"
+    },
+    {
+      "subject": "图状思考",
+      "relation": "触发方式为",
+      "object": "构建一个思维图谱"
+    },
+    { "subject": "图状思考", "relation": "要求列出", "object": "所有相关因素" },
+    {
+      "subject": "图状思考",
+      "relation": "要求标注",
+      "object": "因素之间的关系"
+    },
+    { "subject": "图状思考", "relation": "要求识别", "object": "关键路径" },
+    { "subject": "图状思考", "relation": "要求识别", "object": "循环依赖" },
+    { "subject": "图状思考", "relation": "适用于", "object": "复杂系统分析" },
+    { "subject": "图状思考", "relation": "适用于", "object": "多因素决策" },
+    { "subject": "图状思考", "relation": "适用于", "object": "因果关系推理" },
+    { "subject": "图状思考", "relation": "适用于", "object": "知识图谱构建" },
+    {
+      "subject": "更灵活的推理网络",
+      "relation": "被具有核心特征",
+      "object": "图状思考"
+    },
+    {
+      "subject": "所有相关因素",
+      "relation": "被要求列出",
+      "object": "图状思考"
+    },
+    {
+      "subject": "因素之间的关系",
+      "relation": "被要求标注",
+      "object": "图状思考"
+    },
+    { "subject": "关键路径", "relation": "被要求识别", "object": "图状思考" },
+    { "subject": "循环依赖", "relation": "被要求识别", "object": "图状思考" },
+    { "subject": "复杂系统分析", "relation": "被适用于", "object": "图状思考" },
+    {
+      "subject": "复杂系统分析",
+      "relation": "被适用于",
+      "object": "GoT-GraphofThought"
+    },
+    { "subject": "多因素决策", "relation": "被适用于", "object": "图状思考" },
+    {
+      "subject": "多因素决策",
+      "relation": "被适用于",
+      "object": "GoT-GraphofThought"
+    },
+    { "subject": "因果关系推理", "relation": "被适用于", "object": "图状思考" },
+    {
+      "subject": "因果关系推理",
+      "relation": "被适用于",
+      "object": "GoT-GraphofThought"
+    },
+    { "subject": "知识图谱构建", "relation": "被适用于", "object": "图状思考" },
+    {
+      "subject": "知识图谱构建",
+      "relation": "被适用于",
+      "object": "GoT-GraphofThought"
+    },
+    { "subject": "用户留存", "relation": "依赖于", "object": "产品体验" },
+    { "subject": "用户留存", "relation": "依赖于", "object": "竞品压力" },
+    { "subject": "产品体验", "relation": "被依赖于", "object": "用户留存" },
+    { "subject": "产品体验", "relation": "被依赖于", "object": "用户满意度" },
+    { "subject": "产品体验", "relation": "依赖于", "object": "功能完整度" },
+    { "subject": "产品体验", "relation": "依赖于", "object": "性能问题" },
+    { "subject": "竞品压力", "relation": "被依赖于", "object": "用户留存" },
+    { "subject": "功能完整度", "relation": "被依赖于", "object": "产品体验" },
+    { "subject": "性能问题", "relation": "被依赖于", "object": "产品体验" },
+    { "subject": "新增用户", "relation": "依赖于", "object": "营销投入" },
+    { "subject": "新增用户", "relation": "依赖于", "object": "口碑传播" },
+    { "subject": "营销投入", "relation": "被依赖于", "object": "新增用户" },
+    { "subject": "口碑传播", "relation": "被依赖于", "object": "新增用户" },
+    { "subject": "口碑传播", "relation": "依赖于", "object": "用户满意度" },
+    { "subject": "用户满意度", "relation": "被依赖于", "object": "口碑传播" },
+    { "subject": "用户满意度", "relation": "依赖于", "object": "产品体验" },
+    { "subject": "用户满意度", "relation": "依赖于", "object": "客服质量" },
+    { "subject": "客服质量", "relation": "被依赖于", "object": "用户满意度" },
+    {
+      "subject": "Self-Consistency",
+      "relation": "核心为",
+      "object": "选择最一致的答案"
+    },
+    {
+      "subject": "Self-Consistency",
+      "relation": "核心为",
+      "object": "探索多个可能的推理路径"
+    },
+    {
+      "subject": "Self-Consistency",
+      "relation": "核心是",
+      "object": "生成多个推理路径并选择最一致的答案"
+    },
+    {
+      "subject": "Self-Consistency",
+      "relation": "触发方式是",
+      "object": "用3种不同的方法解决一个问题并比较结果"
+    },
+    {
+      "subject": "Self-Consistency",
+      "relation": "适用于",
+      "object": "关键决策验证"
+    },
+    {
+      "subject": "Self-Consistency",
+      "relation": "适用于",
+      "object": "数学题校验"
+    },
+    {
+      "subject": "Self-Consistency",
+      "relation": "适用于",
+      "object": "逻辑推理"
+    },
+    {
+      "subject": "Self-Consistency",
+      "relation": "适用于",
+      "object": "关键决策验证任务"
+    },
+    {
+      "subject": "Self-Consistency",
+      "relation": "具有",
+      "object": "高技术复杂度"
+    },
+    {
+      "subject": "Self-Consistency",
+      "relation": "具有",
+      "object": "非常高计算成本"
+    },
+    {
+      "subject": "选择最一致的答案",
+      "relation": "被核心为",
+      "object": "Self-Consistency"
+    },
+    {
+      "subject": "GoT-GraphofThought",
+      "relation": "核心是",
+      "object": "允许思维节点之间相互引用和合并"
+    },
+    {
+      "subject": "GoT-GraphofThought",
+      "relation": "触发方式是",
+      "object": "构建一个思维图谱"
+    },
+    {
+      "subject": "GoT-GraphofThought",
+      "relation": "适用于",
+      "object": "复杂系统分析"
+    },
+    {
+      "subject": "GoT-GraphofThought",
+      "relation": "适用于",
+      "object": "多因素决策"
+    },
+    {
+      "subject": "GoT-GraphofThought",
+      "relation": "适用于",
+      "object": "因果关系推理"
+    },
+    {
+      "subject": "GoT-GraphofThought",
+      "relation": "适用于",
+      "object": "知识图谱构建"
+    },
+    {
+      "subject": "允许思维节点之间相互引用和合并",
+      "relation": "被核心是",
+      "object": "GoT-GraphofThought"
+    },
+    {
+      "subject": "允许思维节点之间相互引用和合并",
+      "relation": "被允许",
+      "object": "图状思考"
+    },
+    {
+      "subject": "构建一个思维图谱",
+      "relation": "被触发方式是",
+      "object": "GoT-GraphofThought"
+    },
+    {
+      "subject": "构建一个思维图谱",
+      "relation": "被触发方式为",
+      "object": "图状思考"
+    },
+    {
+      "subject": "生成多个推理路径并选择最一致的答案",
+      "relation": "被核心是",
+      "object": "Self-Consistency"
+    },
+    {
+      "subject": "用3种不同的方法解决一个问题并比较结果",
+      "relation": "被触发方式是",
+      "object": "Self-Consistency"
+    },
+    {
+      "subject": "关键决策验证",
+      "relation": "被适用于",
+      "object": "Self-Consistency"
+    },
+    {
+      "subject": "数学题校验",
+      "relation": "被适用于",
+      "object": "Self-Consistency"
+    },
+    {
+      "subject": "逻辑推理",
+      "relation": "被适用于",
+      "object": "Self-Consistency"
+    },
+    {
+      "subject": "ReAct-Reasoning+Acting",
+      "relation": "核心是",
+      "object": "交替进行推理和行动"
+    },
+    {
+      "subject": "ReAct-Reasoning+Acting",
+      "relation": "触发方式是",
+      "object": "按“思考:[分析当前状态]行动:[执行一个操作]”模式解决问题"
+    },
+    {
+      "subject": "ReAct-Reasoning+Acting",
+      "relation": "适用于",
+      "object": "需要工具调用的任务"
+    },
+    {
+      "subject": "ReAct-Reasoning+Acting",
+      "relation": "具有",
+      "object": "中等技术复杂度"
+    },
+    {
+      "subject": "ReAct-Reasoning+Acting",
+      "relation": "具有",
+      "object": "高准确性"
+    },
+    {
+      "subject": "ReAct-Reasoning+Acting",
+      "relation": "需要",
+      "object": "工具调用"
+    },
+    {
+      "subject": "交替进行推理和行动",
+      "relation": "被核心是",
+      "object": "ReAct-Reasoning+Acting"
+    },
+    {
+      "subject": "按“思考:[分析当前状态]行动:[执行一个操作]”模式解决问题",
+      "relation": "被触发方式是",
+      "object": "ReAct-Reasoning+Acting"
+    },
+    {
+      "subject": "工具调用场景",
+      "relation": "适用",
+      "object": "[分析当前状态]行动:[执行一个操作]观察:[查看结果]思考:[基于结果继续分析]行动:[下一步操作]..."
+    },
+    {
+      "subject": "[分析当前状态]行动:[执行一个操作]观察:[查看结果]思考:[基于结果继续分析]行动:[下一步操作]...",
+      "relation": "被适用",
+      "object": "工具调用场景"
+    },
+    {
+      "subject": "[分析当前状态]行动:[执行一个操作]观察:[查看结果]思考:[基于结果继续分析]行动:[下一步操作]...",
+      "relation": "被适用",
+      "object": "交互式问题解决"
+    },
+    {
+      "subject": "[分析当前状态]行动:[执行一个操作]观察:[查看结果]思考:[基于结果继续分析]行动:[下一步操作]...",
+      "relation": "被适用",
+      "object": "复杂任务拆解为多个步骤"
+    },
+    {
+      "subject": "交互式问题解决",
+      "relation": "适用",
+      "object": "[分析当前状态]行动:[执行一个操作]观察:[查看结果]思考:[基于结果继续分析]行动:[下一步操作]..."
+    },
+    {
+      "subject": "缓存优化方案设计任务",
+      "relation": "被适用于",
+      "object": "CRISPE框架"
+    },
+    {
+      "subject": "CoT推理技术",
+      "relation": "被组合使用",
+      "object": "CRISPE框架"
+    },
+    { "subject": "CoT推理技术", "relation": "是", "object": "推理技术" },
+    {
+      "subject": "CoT推理技术",
+      "relation": "核心机制",
+      "object": "逐步展示推理过程"
+    },
+    { "subject": "CoT推理技术", "relation": "触发方式", "object": "直接指令" },
+    {
+      "subject": "CoT推理技术",
+      "relation": "触发方式",
+      "object": "Few-shot示例"
+    },
+    {
+      "subject": "CoT推理技术",
+      "relation": "适用于",
+      "object": "通用推理任务"
+    },
+    { "subject": "CoT推理技术", "relation": "具有", "object": "低技术复杂度" },
+    { "subject": "CoT推理技术", "relation": "具有", "object": "高准确性" },
+    {
+      "subject": "产品方案设计任务",
+      "relation": "被适用于",
+      "object": "RISEN框架"
+    },
+    {
+      "subject": "ToT推理技术",
+      "relation": "被组合使用",
+      "object": "RISEN框架"
+    },
+    { "subject": "ToT推理技术", "relation": "是", "object": "推理技术" },
+    {
+      "subject": "ToT推理技术",
+      "relation": "核心是",
+      "object": "探索多个可能的推理路径"
+    },
+    {
+      "subject": "ToT推理技术",
+      "relation": "触发方式是",
+      "object": "请探索多个解决方案"
+    },
+    {
+      "subject": "ToT推理技术",
+      "relation": "适用于",
+      "object": "创意头脑风暴"
+    },
+    { "subject": "ToT推理技术", "relation": "适用于", "object": "战略规划" },
+    { "subject": "ToT推理技术", "relation": "适用于", "object": "算法设计" },
+    { "subject": "ToT推理技术", "relation": "适用于", "object": "多方案对比" },
+    {
+      "subject": "ToT推理技术",
+      "relation": "适用于",
+      "object": "需要探索多方案的任务"
+    },
+    {
+      "subject": "ToT推理技术",
+      "relation": "具有",
+      "object": "中等技术复杂度"
+    },
+    {
+      "subject": "ToT推理技术",
+      "relation": "具有",
+      "object": "非常高计算成本"
+    },
+    { "subject": "ToT推理技术", "relation": "支持", "object": "树状思考" },
+    {
+      "subject": "通用推理任务",
+      "relation": "被适用于",
+      "object": "CoT推理技术"
+    },
+    {
+      "subject": "需要探索多方案的任务",
+      "relation": "被适用于",
+      "object": "ToT推理技术"
+    },
+    {
+      "subject": "复杂系统分析任务",
+      "relation": "被适用于",
+      "object": "GoT技术"
+    },
+    {
+      "subject": "关键决策验证任务",
+      "relation": "被适用于",
+      "object": "Self-Consistency"
+    },
+    {
+      "subject": "需要工具调用的任务",
+      "relation": "被适用于",
+      "object": "ReAct-Reasoning+Acting"
+    },
+    {
+      "subject": "低技术复杂度",
+      "relation": "被具有",
+      "object": "CoT推理技术"
+    },
+    {
+      "subject": "高准确性",
+      "relation": "被具有",
+      "object": "ReAct-Reasoning+Acting"
+    },
+    { "subject": "高准确性", "relation": "被具有", "object": "CoT推理技术" },
+    {
+      "subject": "中等技术复杂度",
+      "relation": "被具有",
+      "object": "ToT推理技术"
+    },
+    {
+      "subject": "中等技术复杂度",
+      "relation": "被具有",
+      "object": "ReAct-Reasoning+Acting"
+    },
+    {
+      "subject": "非常高计算成本",
+      "relation": "被具有",
+      "object": "Self-Consistency"
+    },
+    {
+      "subject": "非常高计算成本",
+      "relation": "被具有",
+      "object": "ToT推理技术"
+    },
+    {
+      "subject": "高技术复杂度",
+      "relation": "被具有",
+      "object": "Self-Consistency"
+    },
+    { "subject": "高技术复杂度", "relation": "被具有", "object": "GoT技术" },
+    { "subject": "最高准确性", "relation": "被具有", "object": "GoT技术" },
+    {
+      "subject": "技术文档格式输出",
+      "relation": "被约束部分指定",
+      "object": "CRISPE框架"
+    },
+    {
+      "subject": "提供3个方案",
+      "relation": "被期望部分指定",
+      "object": "CRISPE框架"
+    },
+    {
+      "subject": "产品经理",
+      "relation": "被角色部分指定",
+      "object": "RISEN框架"
+    },
+    {
+      "subject": "用户调研数据",
+      "relation": "被输入部分指定",
+      "object": "RISEN框架"
+    },
+    {
+      "subject": "探索3种产品方向",
+      "relation": "被步骤部分指定",
+      "object": "RISEN框架"
+    },
+    {
+      "subject": "3个月内上线",
+      "relation": "被约束部分指定",
+      "object": "RISEN框架"
+    },
+    { "subject": "树状思考", "relation": "被支持", "object": "ToT推理技术" },
+    {
+      "subject": "工具调用",
+      "relation": "被需要",
+      "object": "ReAct-Reasoning+Acting"
+    },
+    {
+      "subject": "角色扮演增强技巧",
+      "relation": "包含",
+      "object": "角色设定要素"
+    },
+    {
+      "subject": "角色扮演增强技巧",
+      "relation": "要求",
+      "object": "提供具体场景"
+    },
+    {
+      "subject": "角色扮演增强技巧",
+      "relation": "要求",
+      "object": "明确专业背景"
+    },
+    {
+      "subject": "角色扮演增强技巧",
+      "relation": "要求",
+      "object": "指定行动目标"
+    },
+    {
+      "subject": "角色扮演增强技巧",
+      "relation": "要求",
+      "object": "站在特定视角给出建议"
+    },
+    {
+      "subject": "角色设定要素",
+      "relation": "被包含",
+      "object": "角色扮演增强技巧"
+    },
+    {
+      "subject": "提供具体场景",
+      "relation": "被要求",
+      "object": "角色扮演增强技巧"
+    },
+    {
+      "subject": "明确专业背景",
+      "relation": "被要求",
+      "object": "角色扮演增强技巧"
+    },
+    {
+      "subject": "指定行动目标",
+      "relation": "被要求",
+      "object": "角色扮演增强技巧"
+    },
+    {
+      "subject": "站在特定视角给出建议",
+      "relation": "被要求",
+      "object": "角色扮演增强技巧"
+    },
+    {
+      "subject": "期望一次性解决复杂问题",
+      "relation": "被包括",
+      "object": "常见误区"
+    },
+    { "subject": "不给任何示例", "relation": "被包括", "object": "常见误区" },
+    {
+      "subject": "只要结果不要过程",
+      "relation": "被包括",
+      "object": "常见误区"
+    },
+    { "subject": "混淆框架和技术", "relation": "被包括", "object": "常见误区" },
+    { "subject": "解决步骤", "relation": "包含", "object": "自我验证" },
+    { "subject": "解决步骤", "relation": "包含", "object": "分解复杂问题" },
+    { "subject": "自我验证", "relation": "被包含", "object": "解决步骤" },
+    {
+      "subject": "自我验证",
+      "relation": "包含",
+      "object": "检查推理逻辑是否严密"
+    },
+    { "subject": "自我验证", "relation": "包含", "object": "验证计算是否正确" },
+    {
+      "subject": "自我验证",
+      "relation": "包含",
+      "object": "重新推理（若发现错误）"
+    },
+    { "subject": "分解复杂问题", "relation": "被包含", "object": "解决步骤" },
+    {
+      "subject": "分解复杂问题",
+      "relation": "要求",
+      "object": "分为3个子问题"
+    },
+    {
+      "subject": "分解复杂问题",
+      "relation": "要求",
+      "object": "分别解决后再综合"
+    },
+    {
+      "subject": "分为3个子问题",
+      "relation": "被要求",
+      "object": "分解复杂问题"
+    },
+    {
+      "subject": "分别解决后再综合",
+      "relation": "被要求",
+      "object": "分解复杂问题"
+    },
+    {
+      "subject": "检查推理逻辑是否严密",
+      "relation": "被包含",
+      "object": "自我验证"
+    },
+    {
+      "subject": "验证计算是否正确",
+      "relation": "被包含",
+      "object": "自我验证"
+    },
+    {
+      "subject": "重新推理（若发现错误）",
+      "relation": "被包含",
+      "object": "自我验证"
+    }
+  ],
+  "entityIndexData": [
+    { "entity": "CRISPE框架", "chunks": [0, 5, 6, 7, 11] },
+    { "entity": "需要明确角色和任务的场景", "chunks": [0] },
+    { "entity": "C（CapacityandRole）", "chunks": [0] },
+    { "entity": "R（Insight）", "chunks": [0] },
+    { "entity": "S（Statement）", "chunks": [0] },
+    { "entity": "P（Personality）", "chunks": [0] },
+    { "entity": "E（Experiment）", "chunks": [0] },
+    { "entity": "首尾的提示词", "chunks": [0] },
+    { "entity": "LLM的输出结果", "chunks": [0] },
+    { "entity": "常用提示词框架", "chunks": [0, 6] },
+    { "entity": "BROKE框架", "chunks": [0, 1, 5, 6, 7] },
+    { "entity": "COSTAR框架", "chunks": [0, 1, 5, 6] },
+    { "entity": "RISEN框架", "chunks": [0, 2, 5, 11] },
+    { "entity": "APE框架", "chunks": [0, 2, 5] },
+    { "entity": "RASCEF框架", "chunks": [0, 3, 6] },
+    { "entity": "TAG框架", "chunks": [0, 3, 5, 6] },
+    { "entity": "需要深度思考和推理的场景", "chunks": [1] },
+    { "entity": "B(Background)-背景信息", "chunks": [1] },
+    { "entity": "R(Role)-角色设定", "chunks": [1, 4, 5] },
+    { "entity": "O(Objectives)-目标任务", "chunks": [1] },
+    { "entity": "K(KeyResult)-关键结果", "chunks": [1] },
+    { "entity": "E(Evolve)-迭代优化", "chunks": [1] },
+    { "entity": "复杂任务的系统性处理", "chunks": [1] },
+    { "entity": "C(Context)-上下文", "chunks": [1, 4, 5] },
+    { "entity": "O(Objective)-目标", "chunks": [1] },
+    { "entity": "S(Style)-风格", "chunks": [1] },
+    { "entity": "T(Tone)-语气", "chunks": [1] },
+    { "entity": "A(Audience)-受众", "chunks": [1] },
+    { "entity": "R(Response)-响应格式", "chunks": [1] },
+    { "entity": "需要精准输出的场景", "chunks": [2] },
+    { "entity": "五个核心要素", "chunks": [2, 7, 11] },
+    { "entity": "R", "chunks": [2] },
+    { "entity": "角色", "chunks": [2, 3, 4] },
+    { "entity": "I", "chunks": [2] },
+    { "entity": "输入信息", "chunks": [2] },
+    { "entity": "S", "chunks": [2] },
+    { "entity": "执行步骤", "chunks": [2] },
+    { "entity": "E", "chunks": [2] },
+    { "entity": "期望结果", "chunks": [2] },
+    { "entity": "N", "chunks": [2] },
+    { "entity": "约束条件", "chunks": [2] },
+    { "entity": "需要创意和行动方案的场景", "chunks": [2] },
+    { "entity": "三个核心要素", "chunks": [2] },
+    { "entity": "A", "chunks": [2] },
+    { "entity": "行动指令", "chunks": [2] },
+    { "entity": "P", "chunks": [2] },
+    { "entity": "目的意图", "chunks": [2] },
+    { "entity": "期望效果", "chunks": [2] },
+    { "entity": "结构化输出", "chunks": [3] },
+    { "entity": "专业文档", "chunks": [3] },
+    { "entity": "行动", "chunks": [3, 4] },
+    { "entity": "步骤", "chunks": [3] },
+    { "entity": "情境", "chunks": [3] },
+    { "entity": "示例", "chunks": [3, 4] },
+    { "entity": "格式", "chunks": [3, 6] },
+    { "entity": "快速迭代的场景", "chunks": [3, 5] },
+    { "entity": "任务", "chunks": [3] },
+    { "entity": "目标", "chunks": [3] },
+    { "entity": "RASCEF框架的组成部分", "chunks": [3] },
+    { "entity": "TAG框架的组成部分", "chunks": [3] },
+    { "entity": "RACE框架", "chunks": [4, 5, 6] },
+    { "entity": "问题解决场景", "chunks": [4, 5] },
+    { "entity": "A(Action)", "chunks": [4, 5] },
+    { "entity": "E(Example)", "chunks": [4, 5] },
+    { "entity": "上下文", "chunks": [4] },
+    { "entity": "R(Role)的语义解释", "chunks": [4] },
+    { "entity": "A(Action)的语义解释", "chunks": [4] },
+    { "entity": "C(Context)的语义解释", "chunks": [4] },
+    { "entity": "E(Example)的语义解释", "chunks": [4] },
+    { "entity": "RedisCluster", "chunks": [4, 5] },
+    { "entity": "示例中参考的实现", "chunks": [4] },
+    { "entity": "分布式缓存方案", "chunks": [5] },
+    { "entity": "T(Task)", "chunks": [5] },
+    { "entity": "G(Goal)", "chunks": [5] },
+    { "entity": "创意生成场景", "chunks": [5] },
+    { "entity": "技术开发场景", "chunks": [5] },
+    { "entity": "文案撰写场景", "chunks": [5] },
+    { "entity": "系统架构师", "chunks": [5, 11] },
+    { "entity": "设计分布式缓存方案", "chunks": [5] },
+    { "entity": "受众", "chunks": [6] },
+    { "entity": "风格", "chunks": [6] },
+    { "entity": "问题解决", "chunks": [6] },
+    { "entity": "目标导向", "chunks": [6] },
+    { "entity": "快速迭代", "chunks": [6] },
+    { "entity": "结构完整", "chunks": [6] },
+    { "entity": "推理技术", "chunks": [6] },
+    { "entity": "GoT技术", "chunks": [6, 7, 11] },
+    { "entity": "逐步展示推理过程", "chunks": [6] },
+    { "entity": "直接指令", "chunks": [6] },
+    { "entity": "Few-shot示例", "chunks": [6] },
+    { "entity": "首尾强化策略", "chunks": [6] },
+    { "entity": "关键信息放在开头和结尾", "chunks": [6] },
+    { "entity": "具体化策略", "chunks": [6] },
+    { "entity": "避免模糊表述", "chunks": [6] },
+    { "entity": "提供具体示例", "chunks": [6] },
+    { "entity": "分步引导策略", "chunks": [6] },
+    { "entity": "复杂任务拆解为多个步骤", "chunks": [6, 10] },
+    { "entity": "约束条件策略", "chunks": [6] },
+    { "entity": "明确字数、格式、风格等限制", "chunks": [6] },
+    { "entity": "Few-shot学习策略", "chunks": [6] },
+    { "entity": "提供2-3个示例参考", "chunks": [6] },
+    { "entity": "常见误区", "chunks": [6, 12] },
+    { "entity": "过于简短", "chunks": [6] },
+    { "entity": "缺少上下文", "chunks": [6] },
+    { "entity": "一次性提出多个不相关任务", "chunks": [6] },
+    { "entity": "没有明确输出格式要求", "chunks": [6] },
+    { "entity": "忽略角色和受众设定", "chunks": [6] },
+    { "entity": "忽略验证和迭代机制", "chunks": [6] },
+    { "entity": "组织和构建提示词的结构化模板", "chunks": [6] },
+    { "entity": "引导AI进行思考和推理", "chunks": [6] },
+    { "entity": "探索多个可能的推理路径", "chunks": [7, 8] },
+    { "entity": "请探索多个解决方案", "chunks": [7] },
+    { "entity": "创意头脑风暴", "chunks": [7] },
+    { "entity": "战略规划", "chunks": [7] },
+    { "entity": "算法设计", "chunks": [7] },
+    { "entity": "多方案对比", "chunks": [7] },
+    { "entity": "允许思维节点之间相互（连接）", "chunks": [7] },
+    { "entity": "目标设定场景", "chunks": [7] },
+    { "entity": "图状思考", "chunks": [8] },
+    { "entity": "更灵活的推理网络", "chunks": [8] },
+    { "entity": "所有相关因素", "chunks": [8] },
+    { "entity": "因素之间的关系", "chunks": [8] },
+    { "entity": "关键路径", "chunks": [8] },
+    { "entity": "循环依赖", "chunks": [8] },
+    { "entity": "复杂系统分析", "chunks": [8, 9] },
+    { "entity": "多因素决策", "chunks": [8, 9] },
+    { "entity": "因果关系推理", "chunks": [8, 9] },
+    { "entity": "知识图谱构建", "chunks": [8, 9] },
+    { "entity": "用户留存", "chunks": [8] },
+    { "entity": "产品体验", "chunks": [8] },
+    { "entity": "竞品压力", "chunks": [8] },
+    { "entity": "功能完整度", "chunks": [8] },
+    { "entity": "性能问题", "chunks": [8] },
+    { "entity": "新增用户", "chunks": [8] },
+    { "entity": "营销投入", "chunks": [8] },
+    { "entity": "口碑传播", "chunks": [8] },
+    { "entity": "用户满意度", "chunks": [8] },
+    { "entity": "客服质量", "chunks": [8] },
+    { "entity": "Self-Consistency", "chunks": [8, 9, 11] },
+    { "entity": "选择最一致的答案", "chunks": [8] },
+    { "entity": "GoT-GraphofThought", "chunks": [9] },
+    { "entity": "允许思维节点之间相互引用和合并", "chunks": [9, 8] },
+    { "entity": "构建一个思维图谱", "chunks": [9, 8] },
+    { "entity": "生成多个推理路径并选择最一致的答案", "chunks": [9] },
+    { "entity": "用3种不同的方法解决一个问题并比较结果", "chunks": [9] },
+    { "entity": "关键决策验证", "chunks": [9] },
+    { "entity": "数学题校验", "chunks": [9] },
+    { "entity": "逻辑推理", "chunks": [9] },
+    { "entity": "ReAct-Reasoning+Acting", "chunks": [9, 11] },
+    { "entity": "交替进行推理和行动", "chunks": [9] },
+    {
+      "entity": "按“思考:[分析当前状态]行动:[执行一个操作]”模式解决问题",
+      "chunks": [9]
+    },
+    { "entity": "工具调用场景", "chunks": [10] },
+    {
+      "entity": "[分析当前状态]行动:[执行一个操作]观察:[查看结果]思考:[基于结果继续分析]行动:[下一步操作]...",
+      "chunks": [10]
+    },
+    { "entity": "交互式问题解决", "chunks": [10] },
+    { "entity": "缓存优化方案设计任务", "chunks": [11] },
+    { "entity": "CoT推理技术", "chunks": [11, 6] },
+    { "entity": "产品方案设计任务", "chunks": [11] },
+    { "entity": "ToT推理技术", "chunks": [11, 6, 7] },
+    { "entity": "通用推理任务", "chunks": [11] },
+    { "entity": "需要探索多方案的任务", "chunks": [11] },
+    { "entity": "复杂系统分析任务", "chunks": [11] },
+    { "entity": "关键决策验证任务", "chunks": [11] },
+    { "entity": "需要工具调用的任务", "chunks": [11] },
+    { "entity": "低技术复杂度", "chunks": [11] },
+    { "entity": "高准确性", "chunks": [11] },
+    { "entity": "中等技术复杂度", "chunks": [11] },
+    { "entity": "非常高计算成本", "chunks": [11] },
+    { "entity": "高技术复杂度", "chunks": [11] },
+    { "entity": "最高准确性", "chunks": [11] },
+    { "entity": "技术文档格式输出", "chunks": [11] },
+    { "entity": "提供3个方案", "chunks": [11] },
+    { "entity": "产品经理", "chunks": [11] },
+    { "entity": "用户调研数据", "chunks": [11] },
+    { "entity": "探索3种产品方向", "chunks": [11] },
+    { "entity": "3个月内上线", "chunks": [11] },
+    { "entity": "树状思考", "chunks": [11] },
+    { "entity": "工具调用", "chunks": [11] },
+    { "entity": "角色扮演增强技巧", "chunks": [12] },
+    { "entity": "角色设定要素", "chunks": [12] },
+    { "entity": "提供具体场景", "chunks": [12] },
+    { "entity": "明确专业背景", "chunks": [12] },
+    { "entity": "指定行动目标", "chunks": [12] },
+    { "entity": "站在特定视角给出建议", "chunks": [12] },
+    { "entity": "期望一次性解决复杂问题", "chunks": [12] },
+    { "entity": "不给任何示例", "chunks": [12] },
+    { "entity": "只要结果不要过程", "chunks": [12] },
+    { "entity": "混淆框架和技术", "chunks": [12] },
+    { "entity": "解决步骤", "chunks": [12] },
+    { "entity": "自我验证", "chunks": [12] },
+    { "entity": "分解复杂问题", "chunks": [12] },
+    { "entity": "分为3个子问题", "chunks": [12] },
+    { "entity": "分别解决后再综合", "chunks": [12] },
+    { "entity": "检查推理逻辑是否严密", "chunks": [12] },
+    { "entity": "验证计算是否正确", "chunks": [12] },
+    { "entity": "重新推理（若发现错误）", "chunks": [12] }
+  ],
+  "communities": [
+    {
+      "id": 0,
+      "entities": [
+        "CRISPE框架",
+        "需要明确角色和任务的场景",
+        "缓存优化方案设计任务",
+        "C（CapacityandRole）",
+        "R（Insight）",
+        "S（Statement）",
+        "P（Personality）",
+        "E（Experiment）",
+        "五个核心要素",
+        "常用提示词框架",
+        "创意生成场景",
+        "CoT推理技术",
+        "系统架构师",
+        "技术文档格式输出",
+        "提供3个方案",
+        "RISEN框架",
+        "BROKE框架",
+        "COSTAR框架",
+        "APE框架",
+        "RASCEF框架",
+        "TAG框架",
+        "推理技术",
+        "组织和构建提示词的结构化模板",
+        "逐步展示推理过程",
+        "直接指令",
+        "Few-shot示例",
+        "通用推理任务",
+        "低技术复杂度",
+        "高准确性",
+        "设计分布式缓存方案",
+        "需要精准输出的场景",
+        "产品方案设计任务",
+        "技术开发场景",
+        "ToT推理技术",
+        "产品经理",
+        "用户调研数据",
+        "探索3种产品方向",
+        "3个月内上线",
+        "需要深度思考和推理的场景",
+        "目标设定场景",
+        "B(Background)-背景信息",
+        "R(Role)-角色设定",
+        "O(Objectives)-目标任务",
+        "K(KeyResult)-关键结果",
+        "E(Evolve)-迭代优化",
+        "复杂任务的系统性处理",
+        "C(Context)-上下文",
+        "O(Objective)-目标",
+        "S(Style)-风格",
+        "T(Tone)-语气",
+        "A(Audience)-受众",
+        "R(Response)-响应格式",
+        "文案撰写场景",
+        "受众",
+        "风格",
+        "需要创意和行动方案的场景",
+        "三个核心要素",
+        "结构化输出",
+        "专业文档",
+        "角色",
+        "行动",
+        "步骤",
+        "情境",
+        "示例",
+        "格式",
+        "结构完整",
+        "快速迭代的场景",
+        "任务",
+        "目标",
+        "T(Task)",
+        "A(Action)",
+        "G(Goal)",
+        "目标导向",
+        "快速迭代",
+        "GoT技术",
+        "引导AI进行思考和推理",
+        "ReAct-Reasoning+Acting",
+        "RedisCluster",
+        "探索多个可能的推理路径",
+        "请探索多个解决方案",
+        "创意头脑风暴",
+        "战略规划",
+        "算法设计",
+        "多方案对比",
+        "需要探索多方案的任务",
+        "中等技术复杂度",
+        "非常高计算成本",
+        "树状思考",
+        "RACE框架",
+        "上下文",
+        "R",
+        "RASCEF框架的组成部分",
+        "R(Role)的语义解释",
+        "TAG框架的组成部分",
+        "A(Action)的语义解释",
+        "E(Example)的语义解释",
+        "E(Example)",
+        "允许思维节点之间相互（连接）",
+        "复杂系统分析任务",
+        "高技术复杂度",
+        "最高准确性",
+        "交替进行推理和行动",
+        "按“思考:[分析当前状态]行动:[执行一个操作]”模式解决问题",
+        "需要工具调用的任务",
+        "工具调用",
+        "示例中参考的实现",
+        "分布式缓存方案",
+        "Self-Consistency",
+        "问题解决场景",
+        "问题解决",
+        "C(Context)的语义解释",
+        "选择最一致的答案",
+        "生成多个推理路径并选择最一致的答案",
+        "用3种不同的方法解决一个问题并比较结果",
+        "关键决策验证",
+        "数学题校验",
+        "逻辑推理",
+        "关键决策验证任务"
+      ],
+      "summary": "该社区聚焦于**大语言模型（LLM）提示工程的系统化实践**，核心主题是：通过**结构化提示词框架**（如CRISPE、BROKE、COSTAR等）与**先进推理技术**（如CoT、ToT、ReAct）协同优化AI输出质量。社区强调根据任务类型（创意生成、技术开发、文案撰写、问题解决、专业文档等）精准匹配框架——例如CRISPE适配角色明确任务，BROKE支撑深度推理，RASCEF保障结构化输出；同时结合Few-shot示例、首尾强化、分步引导等最佳实践，并区分提示词设计（组织信息）与推理技术（引导思考）的双重维度，最终实现高准确性、高可控性、可迭代的AI协作。"
+    },
+    {
+      "id": 1,
+      "entities": ["首尾的提示词", "LLM的输出结果"],
+      "summary": "该社区聚焦于提示工程（Prompt Engineering）的核心实践，强调首尾提示词对大语言模型（LLM）输出结果的关键影响。围绕这一核心，系统梳理了CRISPE、BROKE、COSTAR等主流提示词框架，尤其详述CRISPE框架的五要素（角色、背景、任务、风格、实验），并以产品经理场景为例说明其结构化应用。整体主题是通过科学设计提示词结构，提升LLM响应的准确性、专业性与可控性，服务于实际业务问题解决。"
+    },
+    {
+      "id": 2,
+      "entities": ["I", "输入信息"],
+      "summary": "该社区聚焦于结构化提示工程框架的实践与应用，核心主题是通过标准化框架提升AI指令设计的精准性与有效性。重点介绍RISEN（强调角色、输入信息、步骤、期望结果、约束条件）和APE（强调行动、目的、期望效果）两大框架，分别适用于需严谨输出的任务（如数据分析）和需创意产出的场景（如内容创作）。其中，“I（输入信息）”作为RISEN框架的关键要素，凸显高质量输入对生成结果质量的决定性作用。社区旨在帮助用户系统化构建提示，平衡明确性与灵活性，实现从模糊需求到可靠输出的高效转化。"
+    },
+    {
+      "id": 3,
+      "entities": ["S", "执行步骤"],
+      "summary": "该社区聚焦于结构化提示工程框架，核心主题是通过标准化模板提升AI指令设计的精准性与实效性。重点介绍RISEN（含角色、输入、**执行步骤**、期望结果、约束条件）和APE（行动、目的、期望效果）两大框架：RISEN强调流程可控、结果可衡量，适用于数据分析等需严谨输出的场景；APE侧重目标驱动与创意落地，适用于内容创作等需灵活行动的场景。其中，“**S（Steps）—执行步骤**”作为RISEN的关键要素，凸显分步操作对实现可复现、可验证结果的核心作用。社区旨在帮助用户依据任务特性选择适配框架，优化人机协作效能。（199字）"
+    },
+    {
+      "id": 4,
+      "entities": ["E", "期望结果", "期望效果"],
+      "summary": "该社区聚焦于结构化提示工程框架的设计与应用，核心主题是通过明确“期望结果”（E）或“期望效果”（E）来驱动高质量输出。社区围绕RISEN（强调角色、输入、步骤、期望结果、约束）和APE（强调行动、目的、期望效果）两大框架展开，突出“E”作为关键锚点——在RISEN中代表可衡量、可交付的**结果**（如“可执行的业务建议”），在APE中体现为具象化、体验导向的**效果**（如“含代码示例、阅读时长10分钟”）。二者均以“E”为终点倒推设计，确保提示精准、产出可控，服务于不同场景（分析型 vs 创意型任务）。社区本质是构建以目标为导向的提示实践方法论。"
+    },
+    {
+      "id": 5,
+      "entities": ["N", "约束条件"],
+      "summary": "该知识图谱“社区”聚焦于AI提示工程中的结构化框架设计，核心主题是通过明确约束条件（N）提升提示词的精准性与实效性。以RISEN框架为例，“N”特指对输出形式、范围或资源的刚性限制（如“报告不超过1页A4纸”），与角色（R）、输入（I）、步骤（S）、期望（E）共同构成闭环指令系统；相较之下，APE等框架未显式强调约束，凸显“N”在需高精度交付场景中的关键作用。社区强调：约束条件并非附加要求，而是保障结果可执行、可评估、可落地的核心要素。"
+    },
+    {
+      "id": 6,
+      "entities": ["A", "行动指令"],
+      "summary": "该社区聚焦于结构化提示工程框架，核心主题是通过标准化框架提升AI指令设计的精准性与实效性。主要涵盖两类框架：RISEN（适用于分析型任务），强调角色、输入、步骤、期望结果与约束条件五要素，确保输出可执行、受控；APE（适用于创意与行动导向任务），突出行动指令（A）、目的意图（P）和期望效果（E）三要素，注重目标驱动与结果可衡量。两者共同服务于高效人机协作，帮助用户将模糊需求转化为清晰、可操作、有边界的AI指令，尤其适用于业务分析、内容创作等实际场景。"
+    },
+    {
+      "id": 7,
+      "entities": ["P", "目的意图"],
+      "summary": "该社区聚焦于结构化提示工程框架的实践与应用，核心主题是通过标准化框架提升AI提示设计的精准性与有效性。重点介绍RISEN（适用于需精准输出的分析类任务，强调角色、输入、步骤、期望与约束）和APE（适用于需创意与行动的生成类任务，突出行动指令、目的意图与期望效果）两大框架。社区以“目的意图（P）”为关键要素，强调在提示设计中明确目标导向，确保AI响应与用户真实需求对齐。通过具体示例阐明不同场景下的框架选型逻辑与落地要点，助力用户系统化构建高质量提示。"
+    },
+    {
+      "id": 8,
+      "entities": ["首尾强化策略", "关键信息放在开头和结尾"],
+      "summary": "该社区聚焦于提示工程（Prompt Engineering）的最佳实践与方法论，核心主题是提升AI交互效果的结构化策略。其中，“首尾强化策略”作为关键技巧，强调将核心信息置于提示词开头和结尾以增强AI注意力与响应准确性。社区系统梳理了提示词框架（如COSTAR、RASCEF）与推理技术（如CoT、ToT）的区别与协同，并涵盖具体化表达、分步引导、约束设定、Few-shot示例等实用技巧，同时警示常见误区（如信息模糊、任务混杂、忽略受众）。整体以“清晰、结构化、可迭代”为原则，助力用户高效构建高质量提示。"
+    },
+    {
+      "id": 9,
+      "entities": ["具体化策略", "避免模糊表述", "提供具体示例"],
+      "summary": "该社区聚焦于提升AI提示工程（Prompt Engineering）效果的核心实践，强调“具体化”这一关键策略：通过避免模糊表述、提供具体示例、分步引导、明确约束条件等方式增强提示词的清晰度与可执行性。内容涵盖结构化提示框架（如COSTAR、RASCEF）、主流推理技术（如CoT链式思考）及其与提示词设计的区别，并总结首尾强化、Few-shot学习等最佳实践，同时警示常见误区（如任务笼统、缺乏上下文与格式要求）。整体以“让AI更准确、可靠、可控地响应”为根本目标。"
+    },
+    {
+      "id": 10,
+      "entities": [
+        "分步引导策略",
+        "复杂任务拆解为多个步骤",
+        "[分析当前状态]行动:[执行一个操作]观察:[查看结果]思考:[基于结果继续分析]行动:[下一步操作]...",
+        "工具调用场景",
+        "交互式问题解决"
+      ],
+      "summary": "该社区聚焦于提升AI交互与推理效能的结构化方法，核心主题是“分步引导式问题解决”。通过将复杂任务拆解为可执行的多步骤流程（如“分析—行动—观察—思考—再行动”循环），结合提示词框架（如COSTAR、RASCEF）与推理技术（如CoT、ToT），支持工具调用、多步骤任务和交互式场景。强调首尾强化、具体化、约束设定与迭代验证等最佳实践，旨在构建清晰、可控、可验证的AI协作范式。"
+    },
+    {
+      "id": 11,
+      "entities": ["约束条件策略", "明确字数、格式、风格等限制"],
+      "summary": "该社区聚焦于高质量AI提示工程（Prompt Engineering）的实践方法论，核心主题是通过结构化框架与约束性策略提升提示词效果。强调明确约束条件（如字数、格式、风格）、受众适配与目标导向设计；推广CRISPE、COSTAR等提示词框架，区分提示构建（如BROKE）与推理技术（如CoT、ToT）；倡导首尾强化、具体化、分步引导、Few-shot示例等最佳实践，并警示常见误区（如任务模糊、缺格式要求、忽视迭代）。整体以专业性、可操作性与实效性为导向。"
+    },
+    {
+      "id": 12,
+      "entities": ["Few-shot学习策略", "提供2-3个示例参考"],
+      "summary": "该社区聚焦于提示工程（Prompt Engineering）的最佳实践，核心主题是提升AI交互效果的结构化方法。重点包括：采用CRISPE、BROKE、COSTAR等提示词框架构建清晰、完整的提示；运用CoT、ToT等推理技术增强AI逻辑能力；尤其强调Few-shot学习策略——通过提供2–3个高质量示例，引导模型准确理解任务目标、格式与风格要求。同时倡导首尾强化、具体化、分步引导、明确约束等技巧，并警示常见误区（如缺乏上下文、忽略角色设定、缺少迭代验证）。整体以实用、可复用的提示设计原则为驱动，服务于文案撰写、问题解决、专业文档生成等多样化场景。"
+    },
+    {
+      "id": 13,
+      "entities": [
+        "常见误区",
+        "过于简短",
+        "缺少上下文",
+        "一次性提出多个不相关任务",
+        "没有明确输出格式要求",
+        "忽略角色和受众设定",
+        "忽略验证和迭代机制",
+        "期望一次性解决复杂问题",
+        "不给任何示例",
+        "只要结果不要过程",
+        "混淆框架和技术"
+      ],
+      "summary": "该社区聚焦于高质量AI提示词（Prompt）工程的核心原则与实践方法。核心主题是：通过结构化提示框架（如COSTAR、CRISPE）明确角色、受众、目标与约束，结合推理技术（如CoT、ToT）提升AI思维深度；强调避免常见误区——如提示过于简短、缺乏上下文、多任务混杂、忽略格式/角色设定、跳过验证迭代等；倡导分步引导、Few-shot示例、首尾强化、具体化表述等最佳实践，厘清“提示框架”与“推理技术”的本质区别及协同应用，最终实现可复现、可验证、高精度的AI交互效果。（199字）"
+    },
+    {
+      "id": 14,
+      "entities": [
+        "图状思考",
+        "允许思维节点之间相互引用和合并",
+        "更灵活的推理网络",
+        "构建一个思维图谱",
+        "所有相关因素",
+        "因素之间的关系",
+        "关键路径",
+        "循环依赖",
+        "复杂系统分析",
+        "多因素决策",
+        "因果关系推理",
+        "知识图谱构建",
+        "GoT-GraphofThought"
+      ],
+      "summary": "该社区聚焦“图状思考”（GoT-Graph of Thought）这一核心范式，强调将思维建模为动态图结构：以因素为节点、关系为边，支持节点引用与合并，形成可迭代演化的推理网络。其方法论包括构建思维图谱、识别关键路径与循环依赖，并用于复杂系统分析、多因素决策、因果推理及知识图谱构建。典型应用如诊断产品增长停滞，需系统梳理用户留存、产品体验、口碑传播等要素及其双向、反馈性关联，进而定位瓶颈。GoT 旨在超越线性链式推理，实现更真实、灵活、可解释的高阶认知建模。"
+    },
+    {
+      "id": 15,
+      "entities": [
+        "用户留存",
+        "产品体验",
+        "竞品压力",
+        "用户满意度",
+        "功能完整度",
+        "性能问题",
+        "口碑传播",
+        "客服质量",
+        "新增用户",
+        "营销投入"
+      ],
+      "summary": "该知识图谱聚焦于“社区”（实指产品或平台）的增长与健康度分析，核心主题是**多因素交织影响下的用户增长与留存困境**。关键逻辑链显示：产品体验（由功能完整度、性能问题决定）直接影响用户满意度和留存；客服质量亦影响满意度；满意度驱动口碑传播，进而影响新增用户；而营销投入和竞品压力共同作用于留存与拉新。图谱强调系统性因果关系与循环依赖（如满意度→口碑→新增→留存→体验优化），旨在识别增长停滞的瓶颈（如性能问题或客服短板），支撑复杂决策与根因诊断。"
+    },
+    {
+      "id": 16,
+      "entities": [
+        "角色扮演增强技巧",
+        "角色设定要素",
+        "提供具体场景",
+        "明确专业背景",
+        "指定行动目标",
+        "站在特定视角给出建议"
+      ],
+      "summary": "该社区聚焦于“结构化角色扮演提示工程”，核心是通过精准设定角色、专业背景、具体场景、行动目标与视角，提升AI响应的专业性与实用性。强调以Few-shot示例引导、分步推理、过程显化和场景适配，避免笼统提问或混淆技术与框架。关键要素包括：明确角色设定（含身份与资历）、锚定真实业务场景、指定可操作目标、限定建议视角，并辅以自我验证与问题分解等元认知策略，旨在构建高信噪比、可落地的专家级对话范式。（199字）"
+    },
+    {
+      "id": 17,
+      "entities": [
+        "解决步骤",
+        "自我验证",
+        "分解复杂问题",
+        "检查推理逻辑是否严密",
+        "验证计算是否正确",
+        "重新推理（若发现错误）",
+        "分为3个子问题",
+        "分别解决后再综合"
+      ],
+      "summary": "该社区聚焦于结构化、可验证的问题解决方法论，核心是“分步引导+严格验证”的认知框架。强调将复杂问题主动分解为3个子问题，分别求解后综合；每一步骤均要求显式呈现推理过程，并在得出结论后执行三重自我验证：检查逻辑严密性、验证计算正确性、发现错误则重新推理。社区明确反对“一步到位”“重结果轻过程”等误区，倡导Few-shot示例、角色化任务设定（如专业角色+场景+行动）以提升推理质量与落地性，本质是构建严谨、透明、可复现的思维实践规范。（198字）"
+    }
+  ],
+  "claims": [
+    {
+      "subject": "首尾的提示词",
+      "claim": "研究表明首尾的提示词对LLM的输出结果影响更大",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 0
+    },
+    {
+      "subject": "CRISPE框架",
+      "claim": "CRISPE框架适用于需要明确角色和任务的场景",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 0
+    },
+    {
+      "subject": "CRISPE框架",
+      "claim": "CRISPE框架包括C（Capacity and Role）、R（Insight）、S（Statement）、P（Personality）、E（Experiment）五个组成部分",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 0
+    },
+    {
+      "subject": "常用提示词框架",
+      "claim": "常用提示词框架包括CRISPE框架、BROKE框架、COSTAR框架、RISEN框架、APE框架、RASCEF框架和TAG框架",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 0
+    },
+    {
+      "subject": "BROKE框架",
+      "claim": "BROKE框架适用于需要深度思考和推理的场景",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 1
+    },
+    {
+      "subject": "COSTAR框架",
+      "claim": "COSTAR框架适用于复杂任务的系统性处理",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 1
+    },
+    {
+      "subject": "BROKE框架",
+      "claim": "BROKE框架包含五个组成部分：B、R、O、K、E",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 1
+    },
+    {
+      "subject": "COSTAR框架",
+      "claim": "COSTAR框架包含六个组成部分：C、O、S、T、A、R",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 1
+    },
+    {
+      "subject": "BROKE框架",
+      "claim": "BROKE框架中的E代表迭代优化",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 1
+    },
+    {
+      "subject": "COSTAR框架",
+      "claim": "COSTAR框架中的R代表响应格式",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 1
+    },
+    {
+      "subject": "BROKE框架",
+      "claim": "BROKE框架不适用于简单任务",
+      "status": "可能的",
+      "confidence": "中",
+      "sourceChunk": 1
+    },
+    {
+      "subject": "COSTAR框架",
+      "claim": "COSTAR框架不适用于简单或单步任务",
+      "status": "可能的",
+      "confidence": "中",
+      "sourceChunk": 1
+    },
+    {
+      "subject": "RISEN框架",
+      "claim": "RISEN框架适用于需要精准输出的场景",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 2
+    },
+    {
+      "subject": "APE框架",
+      "claim": "APE框架适用于需要创意和行动方案的场景",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 2
+    },
+    {
+      "subject": "RISEN框架",
+      "claim": "RISEN框架包含R、I、S、E、N五个核心要素",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 2
+    },
+    {
+      "subject": "APE框架",
+      "claim": "APE框架包含A、P、E三个核心要素",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 2
+    },
+    {
+      "subject": "R",
+      "claim": "R代表角色",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 2
+    },
+    {
+      "subject": "I",
+      "claim": "I代表输入信息",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 2
+    },
+    {
+      "subject": "S",
+      "claim": "S代表执行步骤",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 2
+    },
+    {
+      "subject": "E",
+      "claim": "E代表期望结果",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 2
+    },
+    {
+      "subject": "N",
+      "claim": "N代表约束条件",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 2
+    },
+    {
+      "subject": "A",
+      "claim": "A代表行动指令",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 2
+    },
+    {
+      "subject": "P",
+      "claim": "P代表目的意图",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 2
+    },
+    {
+      "subject": "E",
+      "claim": "E代表期望效果",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 2
+    },
+    {
+      "subject": "RISEN框架",
+      "claim": "RISEN框架的E与APE框架的E含义不同",
+      "status": "可能的",
+      "confidence": "中",
+      "sourceChunk": 2
+    },
+    {
+      "subject": "APE框架",
+      "claim": "APE框架不包含约束条件（N）要素",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 2
+    },
+    {
+      "subject": "RASCEF框架",
+      "claim": "RASCEF框架适用于结构化输出和专业文档",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 3
+    },
+    {
+      "subject": "RASCEF框架",
+      "claim": "RASCEF框架包含六个要素：角色、行动、步骤、情境、示例、格式",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 3
+    },
+    {
+      "subject": "TAG框架",
+      "claim": "TAG框架适用于快速迭代的场景",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 3
+    },
+    {
+      "subject": "TAG框架",
+      "claim": "TAG框架包含三个要素：任务、行动、目标",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 3
+    },
+    {
+      "subject": "RASCEF框架",
+      "claim": "RASCEF框架中的“E”代表示例",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 3
+    },
+    {
+      "subject": "RASCEF框架",
+      "claim": "RASCEF框架中的“F”代表格式",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 3
+    },
+    {
+      "subject": "TAG框架",
+      "claim": "TAG框架中的“G”代表目标",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 3
+    },
+    {
+      "subject": "RASCEF框架",
+      "claim": "RASCEF框架用于技术文档编写场景",
+      "status": "可能的",
+      "confidence": "中",
+      "sourceChunk": 3
+    },
+    {
+      "subject": "TAG框架",
+      "claim": "TAG框架不适用于长期规划类任务",
+      "status": "可能的",
+      "confidence": "低",
+      "sourceChunk": 3
+    },
+    {
+      "subject": "RACE框架",
+      "claim": "RACE框架适用于问题解决场景",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 4
+    },
+    {
+      "subject": "R (Role)",
+      "claim": "R (Role) 表示角色",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 4
+    },
+    {
+      "subject": "A (Action)",
+      "claim": "A (Action) 表示行动",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 4
+    },
+    {
+      "subject": "C (Context)",
+      "claim": "C (Context) 表示上下文",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 4
+    },
+    {
+      "subject": "E (Example)",
+      "claim": "E (Example) 表示示例",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 4
+    },
+    {
+      "subject": "响应时间降低50%",
+      "claim": "响应时间降低50%是该提示任务的目标",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 4
+    },
+    {
+      "subject": "Redis Cluster",
+      "claim": "示例中参考 Redis Cluster 的实现",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 4
+    },
+    {
+      "subject": "日活1000万用户,高并发场景",
+      "claim": "上下文包含日活1000万用户、高并发场景",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 4
+    },
+    {
+      "subject": "系统架构师",
+      "claim": "角色是系统架构师",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 4
+    },
+    {
+      "subject": "设计分布式缓存方案",
+      "claim": "行动是设计分布式缓存方案",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 4
+    },
+    {
+      "subject": "Redis Cluster",
+      "claim": "Redis Cluster 的实现为分布式缓存方案提供参考",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 5
+    },
+    {
+      "subject": "RACE框架",
+      "claim": "RACE框架适用于问题解决场景",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 5
+    },
+    {
+      "subject": "TAG框架",
+      "claim": "TAG框架适用于快速迭代的场景",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 5
+    },
+    {
+      "subject": "CRISPE框架",
+      "claim": "CRISPE框架推荐用于创意生成场景",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 5
+    },
+    {
+      "subject": "APE框架",
+      "claim": "APE框架推荐用于创意生成场景",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 5
+    },
+    {
+      "subject": "RISEN框架",
+      "claim": "RISEN框架推荐用于技术开发场景",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 5
+    },
+    {
+      "subject": "BROKE框架",
+      "claim": "BROKE框架推荐用于技术开发场景",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 5
+    },
+    {
+      "subject": "COSTAR框架",
+      "claim": "COSTAR框架推荐用于文案撰写场景",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 5
+    },
+    {
+      "subject": "CRISPE框架",
+      "claim": "CRISPE框架灵活性高，适合头脑风暴",
+      "status": "肯定的",
+      "confidence": "中",
+      "sourceChunk": 5
+    },
+    {
+      "subject": "BROKE框架",
+      "claim": "BROKE框架结构清晰，适合复杂任务",
+      "status": "肯定的",
+      "confidence": "中",
+      "sourceChunk": 5
+    },
+    {
+      "subject": "系统架构师",
+      "claim": "系统架构师的角色是设计分布式缓存方案",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 5
+    },
+    {
+      "subject": "日活1000万用户",
+      "claim": "日活1000万用户属于高并发场景",
+      "status": "肯定的",
+      "confidence": "中",
+      "sourceChunk": 5
+    },
+    {
+      "subject": "COSTAR框架",
+      "claim": "COSTAR框架考虑受众和风格",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 6
+    },
+    {
+      "subject": "RACE框架",
+      "claim": "RACE框架适用于问题解决",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 6
+    },
+    {
+      "subject": "TAG框架",
+      "claim": "TAG框架目标导向且支持快速迭代",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 6
+    },
+    {
+      "subject": "RASCEF框架",
+      "claim": "RASCEF框架要求格式规范和结构完整",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 6
+    },
+    {
+      "subject": "CRISPE框架、BROKE框架、COSTAR框架",
+      "claim": "CRISPE、BROKE、COSTAR都是提示词框架",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 6
+    },
+    {
+      "subject": "CoT、ToT、GoT",
+      "claim": "CoT、ToT、GoT都是推理技术",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 6
+    },
+    {
+      "subject": "CoT技术",
+      "claim": "CoT技术的核心是让AI逐步展示推理过程",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 6
+    },
+    {
+      "subject": "CoT技术",
+      "claim": "CoT技术可通过直接指令触发",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 6
+    },
+    {
+      "subject": "CoT技术",
+      "claim": "CoT技术可通过Few-shot示例触发",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 6
+    },
+    {
+      "subject": "首尾强化策略",
+      "claim": "首尾强化策略要求将关键信息放在开头和结尾",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 6
+    },
+    {
+      "subject": "具体化策略",
+      "claim": "具体化策略要求避免模糊表述并提供具体示例",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 6
+    },
+    {
+      "subject": "分步引导策略",
+      "claim": "分步引导策略将复杂任务拆解为多个步骤",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 6
+    },
+    {
+      "subject": "约束条件策略",
+      "claim": "约束条件策略要求明确字数、格式、风格等限制",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 6
+    },
+    {
+      "subject": "Few-shot学习策略",
+      "claim": "Few-shot学习策略要求提供2-3个示例参考",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 6
+    },
+    {
+      "subject": "常见误区",
+      "claim": "常见误区包括过于简短、缺少上下文、一次性提出多个不相关任务、没有明确输出格式要求、忽略角色和受众设定、忽略验证和迭代机制",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 6
+    },
+    {
+      "subject": "提示词框架与推理技术",
+      "claim": "提示词框架用于组织和构建提示词，而推理技术用于引导AI思考和推理",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 6
+    },
+    {
+      "subject": "提示词框架",
+      "claim": "提示词框架是组织和构建提示词的结构化模板",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 6
+    },
+    {
+      "subject": "推理技术",
+      "claim": "推理技术是引导AI进行思考和推理的方法",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 6
+    },
+    {
+      "subject": "ToT",
+      "claim": "ToT（Tree of Thought）是一种允许模型探索多个推理路径的思考方法",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 7
+    },
+    {
+      "subject": "ToT",
+      "claim": "ToT的触发方式是要求模型“请探索多个解决方案”",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 7
+    },
+    {
+      "subject": "ToT",
+      "claim": "ToT的适用场景包括创意头脑风暴、战略规划、算法设计和多方案对比",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 7
+    },
+    {
+      "subject": "GoT",
+      "claim": "GoT（Graph of Thought）的核心特征是允许思维节点之间相互连接",
+      "status": "可能的",
+      "confidence": "中",
+      "sourceChunk": 7
+    },
+    {
+      "subject": "CRISPE框架",
+      "claim": "CRISPE框架是一个提示词框架",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 7
+    },
+    {
+      "subject": "BROKE框架",
+      "claim": "BROKE框架不适用于简单任务",
+      "status": "否定的",
+      "confidence": "中",
+      "sourceChunk": 7
+    },
+    {
+      "subject": "图状思考",
+      "claim": "图状思考是一种允许思维节点之间相互引用和合并、形成更灵活推理网络的思维方法",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 8
+    },
+    {
+      "subject": "图状思考",
+      "claim": "图状思考的触发方式是“请构建一个思维图谱”",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 8
+    },
+    {
+      "subject": "图状思考",
+      "claim": "图状思考要求列出所有相关因素（节点）、标注因素间关系（边）、识别关键路径和循环依赖，并综合分析给出结论",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 8
+    },
+    {
+      "subject": "图状思考",
+      "claim": "图状思考适用于复杂系统分析、多因素决策、因果关系推理和知识图谱构建",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 8
+    },
+    {
+      "subject": "图状思考",
+      "claim": "图状思考可用于分析产品增长停滞的原因",
+      "status": "肯定的",
+      "confidence": "中",
+      "sourceChunk": 8
+    },
+    {
+      "subject": "Self-Consistency",
+      "claim": "Self-Consistency的核心是生成多个推理路径并选择最一致的答案",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 8
+    },
+    {
+      "subject": "Self-Consistency",
+      "claim": "Self-Consistency的触发方式在文本中未明确给出",
+      "status": "否定的",
+      "confidence": "中",
+      "sourceChunk": 8
+    },
+    {
+      "subject": "GoT - Graph of Thought",
+      "claim": "GoT - Graph of Thought 是一种允许思维节点之间相互引用和合并的图状思考方法",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 9
+    },
+    {
+      "subject": "GoT - Graph of Thought",
+      "claim": "GoT - Graph of Thought 的触发方式包括列出相关因素、标注关系、识别关键路径和循环依赖、综合分析给出结论",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 9
+    },
+    {
+      "subject": "Self-Consistency",
+      "claim": "Self-Consistency 方法要求生成多个推理路径并选择最一致的答案",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 9
+    },
+    {
+      "subject": "Self-Consistency",
+      "claim": "当多个推理路径结果不一致时，Self-Consistency 要求分析原因",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 9
+    },
+    {
+      "subject": "ReAct - Reasoning + Acting",
+      "claim": "ReAct 方法要求交替进行推理（思考）和行动，并伴随观察",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 9
+    },
+    {
+      "subject": "GoT - Graph of Thought",
+      "claim": "GoT - Graph of Thought 可用于分析产品增长停滞的原因，例如通过构建用户留存、产品体验、营销投入等因素的关系图",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 9
+    },
+    {
+      "subject": "Self-Consistency",
+      "claim": "Self-Consistency 不适用于单次快速直觉判断任务",
+      "status": "可能的",
+      "confidence": "中",
+      "sourceChunk": 9
+    },
+    {
+      "subject": "ReAct - Reasoning + Acting",
+      "claim": "ReAct 框架隐含需要外部工具或环境交互能力（如API调用、搜索等）以支持“行动”环节",
+      "status": "可能的",
+      "confidence": "中",
+      "sourceChunk": 9
+    },
+    {
+      "subject": "[分析当前状态]行动:[执行一个操作]观察:[查看结果]思考:[基于结果继续分析]行动:[下一步操作]...",
+      "claim": "该流程适用于工具调用场景",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 10
+    },
+    {
+      "subject": "[分析当前状态]行动:[执行一个操作]观察:[查看结果]思考:[基于结果继续分析]行动:[下一步操作]...",
+      "claim": "该流程适用于多步骤任务",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 10
+    },
+    {
+      "subject": "[分析当前状态]行动:[执行一个操作]观察:[查看结果]思考:[基于结果继续分析]行动:[下一步操作]...",
+      "claim": "该流程适用于交互式问题解决",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 10
+    },
+    {
+      "subject": "CRISPE框架",
+      "claim": "CRISPE框架是一个包含角色（C）、约束（R）、输入（I）、步骤（S）、期望（E）和格式（P）的提示词框架",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 11
+    },
+    {
+      "subject": "RISEN框架",
+      "claim": "RISEN框架是一个包含角色（R）、输入（I）、步骤（S）、期望（E）和约束（N）的提示词框架",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 11
+    },
+    {
+      "subject": "CoT",
+      "claim": "CoT推理技术适用于通用推理任务且具有低技术复杂度和高准确性",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 11
+    },
+    {
+      "subject": "ToT",
+      "claim": "ToT推理技术适用于需要探索多方案的任务且具有中等技术复杂度和非常高计算成本",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 11
+    },
+    {
+      "subject": "GoT",
+      "claim": "GoT推理技术适用于复杂系统分析任务且具有高技术复杂度和最高准确性",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 11
+    },
+    {
+      "subject": "Self-Consistency",
+      "claim": "Self-Consistency技术适用于关键决策验证任务且具有高技术复杂度和非常高计算成本",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 11
+    },
+    {
+      "subject": "ReAct",
+      "claim": "ReAct技术适用于需要工具调用的任务且具有中等技术复杂度和高准确性",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 11
+    },
+    {
+      "subject": "CRISPE+CoT组合",
+      "claim": "CRISPE框架可与CoT推理技术组合用于缓存优化方案设计任务",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 11
+    },
+    {
+      "subject": "RISEN+ToT组合",
+      "claim": "RISEN框架可与ToT推理技术组合用于产品方案设计任务",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 11
+    },
+    {
+      "subject": "ToT",
+      "claim": "ToT推理技术支持树状思考并要求对每条路径评估可行性",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 11
+    },
+    {
+      "subject": "高级技巧",
+      "claim": "提升推理质量的高级技巧包括显式要求中间步骤和使用Few-shot示例",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 11
+    },
+    {
+      "subject": "Few-shot示例",
+      "claim": "Few-shot示例包含[问题] → [推理过程] → [答案]的结构",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 11
+    },
+    {
+      "subject": "自我验证",
+      "claim": "自我验证是得出结论后的必要步骤",
+      "status": "肯定的",
+      "confidence": "中",
+      "sourceChunk": 11
+    },
+    {
+      "subject": "CRISPE框架",
+      "claim": "CRISPE框架中的“S”代表步骤，例如“先分析当前瓶颈，再列出可选技术，然后对比优缺点，最后给出推荐方案”",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 11
+    },
+    {
+      "subject": "RISEN框架",
+      "claim": "RISEN框架中的“S”代表步骤，例如“用树状思考探索功能增强、用户体验优化、新场景拓展三条路径”",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 11
+    },
+    {
+      "subject": "CRISPE框架",
+      "claim": "CRISPE框架要求以技术文档格式输出结果",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 11
+    },
+    {
+      "subject": "RISEN框架",
+      "claim": "RISEN框架要求产品方案在3个月内上线",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 11
+    },
+    {
+      "subject": "角色扮演增强技巧",
+      "claim": "角色扮演增强技巧要求设定具体角色、专业背景、具体场景、具体行动和角色视角",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 12
+    },
+    {
+      "subject": "常见误区",
+      "claim": "常见误区包括期望一次性解决复杂问题、不给任何示例、只要结果不要过程、混淆框架和技术",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 12
+    },
+    {
+      "subject": "分解复杂问题",
+      "claim": "分解复杂问题应将问题分为3个子问题，分别解决后再综合",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 12
+    },
+    {
+      "subject": "自我验证",
+      "claim": "自我验证要求检查推理逻辑是否严密、验证计算是否正确，且若发现错误需重新推理",
+      "status": "肯定的",
+      "confidence": "高",
+      "sourceChunk": 12
+    },
+    {
+      "subject": "解决步骤",
+      "claim": "解决步骤包含自我验证和分解复杂问题两个核心环节",
+      "status": "肯定的",
+      "confidence": "中",
+      "sourceChunk": 12
+    },
+    {
+      "subject": "角色扮演增强技巧",
+      "claim": "角色扮演增强技巧是一种提示工程方法",
+      "status": "可能的",
+      "confidence": "中",
+      "sourceChunk": 12
+    },
+    {
+      "subject": "常见误区",
+      "claim": "常见误区是用户在提示设计中容易出现的错误类型",
+      "status": "可能的",
+      "confidence": "中",
+      "sourceChunk": 12
+    }
+  ]
+}

@@ -28,7 +28,7 @@ import { Settings } from '@llamaindex/core/global'
 // ─── 本地模块 ────────────────────────────────────────────────────────
 import llm from '../llm.ts'
 import { LLMChunk } from "../check/index.ts";
-import { FILE_DIR, CACHE_NAIVE, CACHE_GRAPH_TRIPLES, CACHE_GRAPH_COMMUNITIES, CACHE_GRAPH_CLAIMS } from "../constants.ts";
+import { FILE_DIR, CACHE_NAIVE, CACHE_GRAPH_INDEX } from "../constants.ts";
 
 // ═══════════════════════════════════════════════════════════════════════
 //  类型定义
@@ -435,9 +435,7 @@ async function resolveEntities(
         cached.triple.object = entityNameMap.get(cached.triple.object)!;
       }
     }
-    // 写回缓存
-    fs.writeFileSync(CACHE_GRAPH_TRIPLES, JSON.stringify(allTriples), "utf-8");
-    console.log(`💾 已更新三元组缓存中的实体名`);
+    // 实体消歧后，完整索引缓存由 buildGraphIndex 统一写入
   }
 
   return { graph, entityIndex, mergedCount };
@@ -521,6 +519,47 @@ ${contextText.slice(0, 3000)}
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+//  图/索引序列化（用于完整索引缓存）
+// ═══════════════════════════════════════════════════════════════════════
+function serializeGraph(graph: Graph): { subject: string; relation: string; object: string }[] {
+  const edges: { subject: string; relation: string; object: string }[] = [];
+  for (const [subject, relations] of graph) {
+    for (const [relation, targets] of relations) {
+      for (const object of targets) {
+        edges.push({ subject, relation, object });
+      }
+    }
+  }
+  return edges;
+}
+
+function deserializeGraph(edges: { subject: string; relation: string; object: string }[]): Graph {
+  const graph: Graph = new Map();
+  for (const { subject, relation, object } of edges) {
+    if (!graph.has(subject)) graph.set(subject, new Map());
+    const relations = graph.get(subject)!;
+    if (!relations.has(relation)) relations.set(relation, new Set());
+    relations.get(relation)!.add(object);
+  }
+  return graph;
+}
+
+function serializeEntityIndex(index: EntityIndex): { entity: string; chunks: number[] }[] {
+  return [...index.entries()].map(([entity, chunks]) => ({ entity, chunks: [...chunks] }));
+}
+
+function deserializeEntityIndex(data: { entity: string; chunks: number[] }[]): EntityIndex {
+  const index: EntityIndex = new Map();
+  for (const { entity, chunks } of data) {
+    index.set(entity, new Set(chunks));
+  }
+  return index;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  构建索引管线: 实体抽取 → 建图 → 社区检测 → 摘要
+// ═══════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 //  构建索引管线: 实体抽取 → 建图 → 社区检测 → 摘要
 // ═══════════════════════════════════════════════════════════════════════
 async function buildGraphIndex(chunks: string[]): Promise<{
@@ -529,86 +568,56 @@ async function buildGraphIndex(chunks: string[]): Promise<{
   communities: Community[];
   claims: Claim[];
 }> {
-  const hasCachedTriples = fs.existsSync(CACHE_GRAPH_TRIPLES);
-  const hasCachedClaims = fs.existsSync(CACHE_GRAPH_CLAIMS);
-
-  // ─── 从缓存加载三元组 ─────────────────────────────────────────────
-  type CachedTriple = { chunkIdx: number; triple: Triple };
-  let allTriples: CachedTriple[];
-  let allClaims: Claim[] = [];
-
-  if (hasCachedTriples && hasCachedClaims) {
-    console.log("📂 检测到缓存的三元组和声明数据，直接加载...");
-    allTriples = JSON.parse(fs.readFileSync(CACHE_GRAPH_TRIPLES, "utf-8"));
-    allClaims = JSON.parse(fs.readFileSync(CACHE_GRAPH_CLAIMS, "utf-8"));
-    console.log(`📊 从缓存加载 ${allTriples.length} 个三元组, ${allClaims.length} 条声明`);
-  } else {
-    // ─── 逐 chunk 抽取三元组 + 声明 ─────────────────────────────────
-    console.log("⏳ 正在逐 chunk 抽取三元组和声明（这可能需要一些时间）...");
-    allTriples = [];
-    allClaims = [];
-    for (let i = 0; i < chunks.length; i++) {
-      process.stdout.write(`   [${i + 1}/${chunks.length}] 正在抽取（三元组+声明）...`);
-      const { triples, claims } = await extractEntities(chunks[i]!, i);
-      for (const triple of triples) {
-        allTriples.push({ chunkIdx: i, triple });
-      }
-      allClaims.push(...claims);
-      console.log(` ✓ ${triples.length} 个三元组, ${claims.length} 条声明`);
-    }
-
-    // 缓存
-    const cacheDir = path.dirname(CACHE_GRAPH_TRIPLES);
-    if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
-    fs.writeFileSync(CACHE_GRAPH_TRIPLES, JSON.stringify(allTriples), "utf-8");
-    fs.writeFileSync(CACHE_GRAPH_CLAIMS, JSON.stringify(allClaims), "utf-8");
-    console.log(`💾 已缓存 ${allTriples.length} 个三元组和 ${allClaims.length} 条声明`);
+  // ─── 完整索引缓存：跳过整条管线 ───────────────────────────────────
+  if (fs.existsSync(CACHE_GRAPH_INDEX)) {
+    console.log("📂 检测到完整索引缓存，直接加载（跳过构建、消歧、社区检测）...");
+    const raw = JSON.parse(fs.readFileSync(CACHE_GRAPH_INDEX, "utf-8"));
+    const graph = deserializeGraph(raw.graphEdges);
+    const entityIndex = deserializeEntityIndex(raw.entityIndexData);
+    return { graph, entityIndex, communities: raw.communities, claims: raw.claims };
   }
 
-  // ─── 建图 ─────────────────────────────────────────────────────────
+  // ─── 全量构建 ─────────────────────────────────────────────────────
+  console.log("⏳ 正在逐 chunk 抽取三元组和声明（这可能需要一些时间）...");
+  type CachedTriple = { chunkIdx: number; triple: Triple };
+  const allTriples: CachedTriple[] = [];
+  const allClaims: Claim[] = [];
+  for (let i = 0; i < chunks.length; i++) {
+    process.stdout.write(`   [${i + 1}/${chunks.length}] 正在抽取...`);
+    const { triples, claims } = await extractEntities(chunks[i]!, i);
+    for (const triple of triples) allTriples.push({ chunkIdx: i, triple });
+    allClaims.push(...claims);
+    console.log(` ✓ ${triples.length} 个三元组, ${claims.length} 条声明`);
+  }
+
   console.log("🔗 正在构建知识图谱...");
-  const { graph, entityIndex, stats } = buildGraph(allTriples);
-  console.log(`   📊 图构建完成: ${stats.entityCount} 个实体, ${stats.relationCount} 条关系`);
+  const { graph, entityIndex } = buildGraph(allTriples);
 
-  // ─── 实体消歧（合并指代同一事物的不同实体） ──────────────────────
-  const { graph: resolvedGraph, entityIndex: resolvedIndex } = await resolveEntities(
-    graph, entityIndex, allTriples,
-  );
+  console.log("🔍 正在执行实体消歧...");
+  const { graph: resolvedGraph, entityIndex: resolvedIndex } = await resolveEntities(graph, entityIndex, allTriples);
 
-  // ─── 社区检测 ─────────────────────────────────────────────────────
   console.log("🏘️  正在检测社区...");
   const rawCommunities = detectCommunities(resolvedGraph);
-  console.log(`   📊 发现 ${rawCommunities.length} 个社区`);
-  rawCommunities.forEach((c, i) => {
-    console.log(`      [${i}] ${c.size} 个实体: ${[...c].slice(0, 5).join(", ")}${c.size > 5 ? "..." : ""}`);
-  });
 
-  // ─── 社区摘要（优先从缓存加载） ───────────────────────────────────
-  const hasCachedSummaries = fs.existsSync(CACHE_GRAPH_COMMUNITIES);
-  let communities: Community[];
-
-  if (hasCachedSummaries) {
-    console.log("📂 检测到缓存的社区摘要，直接加载...");
-    communities = JSON.parse(fs.readFileSync(CACHE_GRAPH_COMMUNITIES, "utf-8"));
-    console.log(`📊 从缓存加载 ${communities.length} 个社区摘要`);
-  } else {
-    console.log("⏳ 正在生成社区摘要...");
-    communities = [];
-    for (let i = 0; i < rawCommunities.length; i++) {
-      process.stdout.write(`   [${i + 1}/${rawCommunities.length}] 正在生成摘要...`);
-      const summary = await summarizeCommunity(rawCommunities[i]!, resolvedIndex, chunks);
-      communities.push({
-        id: i,
-        entities: [...rawCommunities[i]!],
-        summary,
-      });
-      console.log(" ✓");
-    }
-
-    // 缓存社区摘要
-    fs.writeFileSync(CACHE_GRAPH_COMMUNITIES, JSON.stringify(communities), "utf-8");
-    console.log(`💾 社区摘要已缓存到 ${CACHE_GRAPH_COMMUNITIES}`);
+  console.log("⏳ 正在生成社区摘要...");
+  const communities: Community[] = [];
+  for (let i = 0; i < rawCommunities.length; i++) {
+    process.stdout.write(`   [${i + 1}/${rawCommunities.length}] 正在生成摘要...`);
+    const summary = await summarizeCommunity(rawCommunities[i]!, resolvedIndex, chunks);
+    communities.push({ id: i, entities: [...rawCommunities[i]!], summary });
+    console.log(" ✓");
   }
+
+  // ─── 写完整索引缓存（一个文件全部包含） ─────────────────────────
+  const cacheDir = path.dirname(CACHE_GRAPH_INDEX);
+  if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
+  fs.writeFileSync(CACHE_GRAPH_INDEX, JSON.stringify({
+    graphEdges: serializeGraph(resolvedGraph),
+    entityIndexData: serializeEntityIndex(resolvedIndex),
+    communities,
+    claims: allClaims,
+  }), "utf-8");
+  console.log(`💾 完整索引已缓存到 ${CACHE_GRAPH_INDEX}，后续启动将跳过整条管线`);
 
   return { graph: resolvedGraph, entityIndex: resolvedIndex, communities, claims: allClaims };
 }
@@ -661,17 +670,41 @@ async function analyzeQuery(query: string): Promise<{
 }
 
 // ─── 6b: 在图谱中定位实体 → BFS 遍历邻居 ──────────────────────────
-function traverseGraph(
+async function traverseGraph(
   queryEntities: string[],
   graph: Graph,
   entityIndex: EntityIndex,
   maxDepth: number = 2,
-): { relatedEntities: Set<string>; relatedChunks: Set<number> } {
+): Promise<{ relatedEntities: Set<string>; relatedChunks: Set<number>; }> {
   const relatedEntities = new Set<string>();
   const visited = new Set<string>();
 
   // 实体消歧已在构建阶段完成，直接查图
-  const matchedEntities = queryEntities.filter(e => graph.has(e));
+  let matchedEntities = queryEntities.filter(e => graph.has(e));
+
+  if (matchedEntities.length === 0) {
+    // 精确匹配失败 → LLM 语义匹配兜底
+    console.log(`   ⚠️  精确匹配失败，尝试 LLM 语义匹配...`);
+    const allEntities = [...graph.keys()];
+    const prompt = `以下是一个知识图谱中的所有实体列表。用户查询中包含以下的实体名，请判断图谱中是否有与之指代同一实体的名称。
+只输出匹配到的图谱实体名（一行一个），如果没有匹配输出"无"。
+
+图谱实体列表（部分）:
+${allEntities.join("\n")}
+
+用户查询实体:
+${queryEntities.join(", ")}
+
+匹配的图谱实体:`;
+
+    const resp = await llm.chat({
+      messages: [{ role: "user", content: prompt }],
+    });
+    const raw = (resp.message.content as string).trim();
+    if (raw !== "无") {
+      matchedEntities = raw.split("\n").map(s => s.trim()).filter(s => graph.has(s));
+    }
+  }
 
   if (matchedEntities.length === 0) {
     console.log(`   ⚠️  查询实体 "${queryEntities.join(", ")}" 未在图谱中找到`);
@@ -735,7 +768,7 @@ async function queryGraphRAG(
   }
 
   // Step 2: 图谱遍历
-  const { relatedEntities, relatedChunks } = traverseGraph(queryEntities, graph, entityIndex);
+  const { relatedEntities, relatedChunks } = await traverseGraph(queryEntities, graph, entityIndex);
   console.log(`   🔗 图谱遍历: 找到 ${relatedEntities.size} 个相关实体, ${relatedChunks.size} 个相关片段`);
 
   // Step 3: 找到相关的社区
@@ -777,25 +810,16 @@ async function queryGraphRAG(
     }
   }
   if (entityRelationPaths.length > 0) {
-    contextParts.push(`【实体关系路径】\n${entityRelationPaths.slice(0, 20).join("\n")}`);
+    contextParts.push(`【实体关系路径】\n${entityRelationPaths.slice(0, 5).join("\n")}`);
   }
 
-  // 4c: 原文片段
-  if (relatedChunks.size > 0) {
-    const rawTexts = [...relatedChunks]
-      .sort((a, b) => a - b)
-      .slice(0, 5)
-      .map(id => `[原文片段 ${id}]\n${chunks[id]}`)
-      .join("\n\n");
-    contextParts.push(`【相关原文】\n${rawTexts}`);
-  }
-
-  // 4d: 相关声明（带状态和置信度）
+  // 4d: 相关声明（带状态和置信度，上限 10 条）
   const relatedClaims = claims.filter(c =>
     relatedEntities.has(c.subject));
   if (relatedClaims.length > 0) {
     const claimTexts = relatedClaims
-      .map(c => `[声明] ${c.claim} (状态: ${c.status}, 置信度: ${c.confidence})`)
+      .slice(0, 10)
+      .map(c => `[声明] ${c.claim} (${c.status})`)
       .join("\n");
     contextParts.push(`【相关声明】\n${claimTexts}`);
   }
@@ -834,7 +858,7 @@ async function globalSearch(
   ).join("\n\n---\n\n");
 
   const claimSummary = claims
-    .slice(0, 30)
+    .slice(0, 10)
     .map(c => `[声明] ${c.claim} (${c.status})`)
     .join("\n");
 

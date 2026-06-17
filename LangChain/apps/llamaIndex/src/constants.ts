@@ -53,9 +53,5 @@ export const CACHE_MULTIMODAL = path.resolve(CACHE_DIR, "multimodal_nodes.json")
 export const CACHE_IMAGE_DESC = path.resolve(CACHE_DIR, "image_descriptions.json");
 
 // ─── Graph RAG 缓存路径 ──────────────────────────────────────────────
-/** Graph RAG 三元组缓存 */
-export const CACHE_GRAPH_TRIPLES = path.resolve(CACHE_DIR, "graph_triples.json");
-/** Graph RAG 社区摘要缓存 */
-export const CACHE_GRAPH_COMMUNITIES = path.resolve(CACHE_DIR, "graph_communities.json");
-/** Graph RAG 声明缓存 */
-export const CACHE_GRAPH_CLAIMS = path.resolve(CACHE_DIR, "graph_claims.json");
+/** Graph RAG 完整索引缓存（图+实体索引+社区+声明，单文件） */
+export const CACHE_GRAPH_INDEX = path.resolve(CACHE_DIR, "graph_index.json");
