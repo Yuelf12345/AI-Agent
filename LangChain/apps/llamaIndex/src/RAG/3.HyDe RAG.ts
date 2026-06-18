@@ -10,22 +10,15 @@ import { OpenAIEmbedding } from '@llamaindex/openai'
 import { Settings } from '@llamaindex/core/global'
 
 // ─── 本地模块 ────────────────────────────────────────────────────────
+import "../embedding.ts";
 import llm, { tokenTracker } from '../llm.ts'
 import { FixedSizeChunk, SemanticChunk, RecursiveChunk, LLMChunk, SentenceSplitter, TokenTextSplitter, SentenceWindowNodeParser } from "../check/index.ts";
 import { FILE_DIR, STORAGE_DIR, CACHE_NAIVE } from "../constants.ts";
 
-//  Step 0: 全局配置 — 设置 Embedding 模型和 LLM
+//  Step 0: 全局配置 — 设置 LLM（Embedding 已在 embedding.ts 中自动配置）
 // ═══════════════════════════════════════════════════════════════════════
-const configureSettings = () => {
-    Settings.embedModel = new OpenAIEmbedding({
-        model: "text-embedding-v3", // 阿里云通义千问 embedding 模型
-    });
-    Settings.llm = llm;
-    console.log("⚙️  全局配置完成 — Embedding: text-embedding-v3, LLM: 已就绪");
-}
-
-// Step0: 全局配置
-configureSettings();
+Settings.llm = llm;
+console.log(`      LLM: ${process.env.LOCAL ? "本地 (Ollama qwen2.5:7b)" : "云端 (阿里云 qwen-plus)"}`);
 
 // ═══════════════════════════════════════════════════════════════════════
 //  缓存检查：如果已有持久化索引，直接加载，跳过整个构建流程

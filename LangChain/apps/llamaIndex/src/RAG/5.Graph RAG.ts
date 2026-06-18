@@ -22,10 +22,10 @@ import * as readline from "readline";
 // ─── LlamaIndex 核心模块 ────────────────────────────────────────────
 import { SimpleDirectoryReader } from "@llamaindex/readers/directory";
 import { Document, TextNode } from "@llamaindex/core/schema";
-import { OpenAIEmbedding } from '@llamaindex/openai'
 import { Settings } from '@llamaindex/core/global'
 
 // ─── 本地模块 ────────────────────────────────────────────────────────
+import "../embedding.ts";
 import llm, { tokenTracker } from '../llm.ts'
 import { LLMChunk } from "../check/index.ts";
 import { FILE_DIR, CACHE_NAIVE, CACHE_GRAPH_INDEX } from "../constants.ts";
@@ -64,15 +64,10 @@ interface Claim {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-//  Step 0: 全局配置 — 设置 LLM
+//  Step 0: 全局配置 — 设置 LLM（Embedding 已在 embedding.ts 中自动配置）
 // ═══════════════════════════════════════════════════════════════════════
-const configureSettings = () => {
-  Settings.llm = llm;
-  console.log("⚙️  全局配置完成 — LLM: 已就绪");
-}
-
-// Step0: 全局配置
-configureSettings();
+Settings.llm = llm;
+console.log(`      LLM: ${process.env.LOCAL ? "本地 (Ollama qwen2.5:7b)" : "云端 (阿里云 qwen-plus)"}`);
 
 // ═══════════════════════════════════════════════════════════════════════
 //  加载文档 + 切分（复用 Naive 的缓存）

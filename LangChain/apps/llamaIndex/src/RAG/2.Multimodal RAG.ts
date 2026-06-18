@@ -39,10 +39,11 @@ import {
   VectorStoreIndex,
   storageContextFromDefaults,
 } from "llamaindex";
-import { OpenAIEmbedding, OpenAI } from "@llamaindex/openai";
+import { OpenAI } from "@llamaindex/openai";
 import { Settings } from "@llamaindex/core/global";
 
 // ─── 本地模块 ────────────────────────────────────────────────────────
+import "../embedding.ts";
 import llm from "../llm.ts";
 import {
   LLMChunk,
@@ -57,17 +58,10 @@ import {
 } from "../constants.ts";
 
 // ═══════════════════════════════════════════════════════════════════════
-//  Step 0: 全局配置 — 设置 Embedding 模型和 LLM
+//  Step 0: 全局配置 — 设置 LLM（Embedding 已在 embedding.ts 中自动配置）
 // ═══════════════════════════════════════════════════════════════════════
-function configureSettings() {
-  Settings.embedModel = new OpenAIEmbedding({
-    model: "text-embedding-v3", // 阿里云通义千问 embedding 模型
-  });
-  Settings.llm = llm;
-  console.log("⚙️  全局配置完成 — Embedding: text-embedding-v3, LLM: 已就绪");
-}
-
-configureSettings();
+Settings.llm = llm;
+console.log(`      LLM: ${process.env.LOCAL ? "本地 (Ollama qwen2.5:7b)" : "云端 (阿里云 qwen-plus)"}`);
 
 // ═══════════════════════════════════════════════════════════════════════
 //  核心模块：Vision LLM — 将图片描述为文本
