@@ -29,57 +29,29 @@ import {
   VectorStoreIndex,
   storageContextFromDefaults,
 } from "llamaindex";
-import { Settings } from "@llamaindex/core/global";
 
 // ─── 本地模块 ────────────────────────────────────────────────────────
-import "../embedding.ts";
+import embeddingModel from "../embedding.ts";
 import llm, { tokenTracker } from "../llm.ts";
+import { configureGlobalSettings } from "../config.ts";
 import { LLMChunk } from "../check/index.ts";
 import { FILE_DIR, STORAGE_DIR, CACHE_NAIVE } from "../constants.ts";
 
 // ═══════════════════════════════════════════════════════════════════════
-//  类型定义
+//  Step 0: 全局配置 — 使用统一的配置函数
 // ═══════════════════════════════════════════════════════════════════════
-
-/** 问题复杂度等级 */
-type Complexity = "simple" | "medium" | "complex";
-
-/** 查询分析结果 */
-interface Analysis {
-  complexity: Complexity;
-  reason: string;       // 分类理由（用于日志展示）
-}
-
-/** 检索结果条目 */
-interface RetrievedDoc {
-  text: string;
-  score: number;
-}
-
-/** 检索配置 */
-const RETRIEVAL_CONFIG = {
-  mediumTopK: 3,        // 中等问题的检索数量
-  complexFirstK: 3,     // 复杂问题第一轮检索数量
-  complexSecondK: 3,    // 复杂问题第二轮检索数量
-  simpleTopK: 1,        // 简单问题的检索数量
-} as const;
-
-// ═══════════════════════════════════════════════════════════════════════
-//  Step 0: 全局配置 — 设置 LLM（Embedding 已在 embedding.ts 中自动配置）
-// ═══════════════════════════════════════════════════════════════════════
-Settings.llm = llm;
-console.log(`      LLM: ${process.env.LOCAL === "true" ? "本地 (Ollama qwen2.5:7b)" : "云端 (阿里云 qwen-plus)"}`);
+configureGlobalSettings(llm, embeddingModel);
 
 // ═══════════════════════════════════════════════════════════════════════
 //  加载文档 + 切分 + 构建向量索引
 // ═══════════════════════════════════════════════════════════════════════
-const storageContext = await storageContextFromDefaults({ persistDir: STORAGE_DIR });
 
 let index: VectorStoreIndex;
 const hasExistingIndex = fs.existsSync(path.join(STORAGE_DIR, "docstore.json"));
 
 if (hasExistingIndex) {
   console.log("📂 检测到已有持久化索引，直接加载...");
+  const storageContext = await storageContextFromDefaults({ persistDir: STORAGE_DIR });
   index = await VectorStoreIndex.init({ storageContext });
   console.log("✅ 索引加载完成");
 } else {
@@ -121,6 +93,7 @@ if (hasExistingIndex) {
 
   // Step 3: 向量化 & 建索引
   console.log("⏳ 正在生成 embedding 并构建向量索引...");
+  const storageContext = await storageContextFromDefaults({ persistDir: STORAGE_DIR });
   index = await VectorStoreIndex.init({ nodes, storageContext });
   console.log("✅ 向量数据库构建完成");
   console.log(`   📦 节点数: ${nodes.length}`);
