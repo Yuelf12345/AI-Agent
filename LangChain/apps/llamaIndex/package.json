@@ -14,7 +14,8 @@
     "coc": "cross-env LOCAL=local tsx --env-file=../../.env \"src/RAG/4.Corrective RAG.ts\"",
     "graph": "tsx --env-file=../../.env \"src/RAG/5.Graph RAG.ts\"",
     "hybrde": "tsx --env-file=../../.env \"src/RAG/6.Hybrid RAG.ts\"",
-    "adap": "cross-env tsx --env-file=../../.env \"src/RAG/7.Adaptive RAG.ts\""
+    "adap": "cross-env tsx --env-file=../../.env \"src/RAG/7.Adaptive RAG.ts\"",
+    "agent": "cross-env tsx --env-file=../../.env \"src/RAG/8.Agentic RAG.ts\""
   },
   "keywords": [],
   "author": "",
