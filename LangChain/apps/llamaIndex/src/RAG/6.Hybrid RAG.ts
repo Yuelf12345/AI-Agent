@@ -28,70 +28,17 @@ import {
   VectorStoreIndex,
   storageContextFromDefaults,
 } from "llamaindex";
-import { Settings } from "@llamaindex/core/global";
 
 // ─── 本地模块 ────────────────────────────────────────────────────────
-import "../embedding.ts";
+import { initGlobalSettings } from "../config.ts";
 import llm, { tokenTracker } from "../llm.ts";
 import { LLMChunk } from "../check/index.ts";
 import { FILE_DIR, STORAGE_DIR, CACHE_NAIVE, CACHE_GRAPH_INDEX } from "../constants.ts";
 
 // ═══════════════════════════════════════════════════════════════════════
-//  类型定义
+//  Step 0: 初始化全局配置
 // ═══════════════════════════════════════════════════════════════════════
-
-/** 三元组: (主体, 关系, 客体) */
-interface Triple {
-  subject: string;
-  relation: string;
-  object: string;
-}
-
-/** 图结构: entity → { relation → Set<targetEntity> } */
-type Graph = Map<string, Map<string, Set<string>>>;
-
-/** 实体 → chunk索引 映射（用于回溯原文） */
-type EntityIndex = Map<string, Set<number>>;
-
-/** 社区: 一组实体 */
-interface Community {
-  id: number;
-  entities: string[];
-  summary: string;
-}
-
-/** 声明: 带状态和置信度的陈述 */
-interface Claim {
-  subject: string;
-  claim: string;
-  status: "肯定的" | "否定的" | "可能的";
-  confidence: "高" | "中" | "低";
-  sourceChunk: number;
-}
-
-/** 检索结果条目（包含检索来源标记） */
-interface RetrievedChunk {
-  chunkIndex: number;
-  text: string;
-  vectorScore: number;    // 向量检索分数 (0~1)，未检索到则为 0
-  graphScore: number;     // 图谱相关分数 (0~1)，未检索到则为 0
-  rankVector: number;     // 向量检索中的排名（1-based）
-  rankGraph: number;      // 图谱检索中的排名（1-based）
-}
-
-/** 检索配置 */
-const RETRIEVAL_CONFIG = {
-  vectorTopK: 5,          // 向量检索取 Top-K
-  graphTopK: 5,           // 图谱检索取 Top-K
-  rrfK: 60,               // RRF 常数（标准值 60）
-  finalTopK: 5,           // 融合后最终取 Top-K 送给 LLM
-} as const;
-
-// ═══════════════════════════════════════════════════════════════════════
-//  Step 0: 全局配置 — 设置 LLM（Embedding 已在 embedding.ts 中自动配置）
-// ═══════════════════════════════════════════════════════════════════════
-Settings.llm = llm;
-console.log(`      LLM: ${process.env.LOCAL === "true" ? "本地 (Ollama qwen2.5:7b)" : "云端 (阿里云 qwen-plus)"}`);
+initGlobalSettings();
 
 // ═══════════════════════════════════════════════════════════════════════
 //  加载文档 + 切分

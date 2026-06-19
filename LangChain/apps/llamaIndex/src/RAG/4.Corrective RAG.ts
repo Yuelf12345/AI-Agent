@@ -7,18 +7,17 @@ import { SimpleDirectoryReader } from "@llamaindex/readers/directory";
 import { VectorStoreIndex, storageContextFromDefaults, } from "llamaindex";
 import { Document, TextNode } from "@llamaindex/core/schema";
 import { OpenAIEmbedding } from '@llamaindex/openai'
-import { Settings } from '@llamaindex/core/global'
 
 // ─── 本地模块 ────────────────────────────────────────────────────────
-import "../embedding.ts";
+import { initGlobalSettings } from "../config.ts";
 import llm, { tokenTracker } from '../llm.ts'
 import { FixedSizeChunk, SemanticChunk, RecursiveChunk, LLMChunk, SentenceSplitter, TokenTextSplitter, SentenceWindowNodeParser } from "../check/index.ts";
 import { FILE_DIR, STORAGE_DIR, CACHE_NAIVE } from "../constants.ts";
 
-//  Step 0: 全局配置 — 设置 LLM（Embedding 已在 embedding.ts 中自动配置）
 // ═══════════════════════════════════════════════════════════════════════
-Settings.llm = llm;
-console.log(`      LLM: ${process.env.LOCAL ? "本地 (Ollama qwen2.5:7b)" : "云端 (阿里云 qwen-plus)"}`);
+//  Step 0: 初始化全局配置
+// ═══════════════════════════════════════════════════════════════════════
+initGlobalSettings();
 
 // ═══════════════════════════════════════════════════════════════════════
 //  缓存检查：如果已有持久化索引，直接加载，跳过整个构建流程

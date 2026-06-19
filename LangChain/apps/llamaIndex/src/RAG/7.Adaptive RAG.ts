@@ -31,16 +31,42 @@ import {
 } from "llamaindex";
 
 // ─── 本地模块 ────────────────────────────────────────────────────────
-import embeddingModel from "../embedding.ts";
+import { initGlobalSettings } from "../config.ts";
 import llm, { tokenTracker } from "../llm.ts";
-import { configureGlobalSettings } from "../config.ts";
 import { LLMChunk } from "../check/index.ts";
 import { FILE_DIR, STORAGE_DIR, CACHE_NAIVE } from "../constants.ts";
 
 // ═══════════════════════════════════════════════════════════════════════
-//  Step 0: 全局配置 — 使用统一的配置函数
+//  Step 0: 初始化全局配置
 // ═══════════════════════════════════════════════════════════════════════
-configureGlobalSettings(llm, embeddingModel);
+initGlobalSettings();
+
+// ═══════════════════════════════════════════════════════════════════════
+//  类型定义
+// ═══════════════════════════════════════════════════════════════════════
+
+/** 问题复杂度等级 */
+type Complexity = "simple" | "medium" | "complex";
+
+/** 查询分析结果 */
+interface Analysis {
+  complexity: Complexity;
+  reason: string;       // 分类理由（用于日志展示）
+}
+
+/** 检索结果条目 */
+interface RetrievedDoc {
+  text: string;
+  score: number;
+}
+
+/** 检索配置 */
+const RETRIEVAL_CONFIG = {
+  mediumTopK: 3,        // 中等问题的检索数量
+  complexFirstK: 3,     // 复杂问题第一轮检索数量
+  complexSecondK: 3,    // 复杂问题第二轮检索数量
+  simpleTopK: 1,        // 简单问题的检索数量
+} as const;
 
 // ═══════════════════════════════════════════════════════════════════════
 //  加载文档 + 切分 + 构建向量索引

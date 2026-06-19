@@ -43,7 +43,7 @@ import { OpenAI } from "@llamaindex/openai";
 import { Settings } from "@llamaindex/core/global";
 
 // ─── 本地模块 ────────────────────────────────────────────────────────
-import "../embedding.ts";
+import { initGlobalSettings } from "../config.ts";
 import llm from "../llm.ts";
 import {
   LLMChunk,
@@ -58,10 +58,9 @@ import {
 } from "../constants.ts";
 
 // ═══════════════════════════════════════════════════════════════════════
-//  Step 0: 全局配置 — 设置 LLM（Embedding 已在 embedding.ts 中自动配置）
+//  Step 0: 初始化全局配置
 // ═══════════════════════════════════════════════════════════════════════
-Settings.llm = llm;
-console.log(`      LLM: ${process.env.LOCAL ? "本地 (Ollama qwen2.5:7b)" : "云端 (阿里云 qwen-plus)"}`);
+initGlobalSettings();
 
 // ═══════════════════════════════════════════════════════════════════════
 //  核心模块：Vision LLM — 将图片描述为文本
