@@ -15,7 +15,7 @@ const configs = {
   },
 } as const;
 
-const key = (process.env.LOCAL || "default") as keyof typeof configs;
+const key = (process.env.MODULE || "default") as keyof typeof configs;
 const embeddingModel = new OpenAIEmbedding(configs[key]);
 
 // ─── 自动配置全局 Settings ────────────────────────────────────────────

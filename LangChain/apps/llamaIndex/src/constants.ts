@@ -11,9 +11,11 @@
  *   │   └── pdf/            ← PDF 文件
  *   ├── storage/            ← STORAGE_DIR（Naive RAG 索引持久化）
  *   ├── storage_multimodal/ ← STORAGE_MULTIMODAL_DIR（Multimodal RAG 索引持久化）
+ *   ├── storage_agentic/    ← STORAGE_AGENTIC_DIR（Agentic RAG 索引持久化）
  *   └── cache/              ← CACHE_DIR（缓存目录）
  *       ├── naive_nodes.json      ← CACHE_NAIVE（Naive RAG 切分缓存）
  *       ├── multimodal_nodes.json ← CACHE_MULTIMODAL（Multimodal RAG 切分缓存）
+ *       ├── agentic_nodes.json    ← CACHE_AGENTIC（Agentic RAG 切分缓存）
  *       └── image_descriptions.json ← CACHE_IMAGE_DESC（图片描述缓存）
  */
 
@@ -51,6 +53,13 @@ export const CACHE_MULTIMODAL = path.resolve(CACHE_DIR, "multimodal_nodes.json")
 
 /** Vision LLM 生成的图片描述缓存 */
 export const CACHE_IMAGE_DESC = path.resolve(CACHE_DIR, "image_descriptions.json");
+
+// ─── Agentic RAG 路径 ────────────────────────────────────────────────
+/** Agentic RAG 索引持久化目录 */
+export const STORAGE_AGENTIC_DIR = path.resolve(PROJECT_ROOT, "storage_agentic");
+
+/** Agentic RAG 切分结果缓存 */
+export const CACHE_AGENTIC = path.resolve(CACHE_DIR, "agentic_nodes.json");
 
 // ─── Graph RAG 缓存路径 ──────────────────────────────────────────────
 /** Graph RAG 完整索引缓存（图+实体索引+社区+声明，单文件） */

@@ -37,6 +37,6 @@ export function initGlobalSettings(): void {
   isConfigured = true;
 
   console.log(`✅ 全局 Settings 配置完成`);
-  console.log(`   - LLM: ${process.env.LOCAL === "true" ? "本地 (Ollama qwen2.5:7b)" : "云端 (阿里云 qwen-plus)"}`);
-  console.log(`   - Embedding: ${embeddingModel.model} (${process.env.LOCAL === "true" ? "本地 Ollama" : "云端阿里云"})`);
+  console.log(`   - LLM: ${process.env.MODULE === "local" ? "本地 (Ollama qwen2.5:7b)" : "云端 (阿里云 qwen-plus)"}`);
+  console.log(`   - Embedding: ${embeddingModel.model} (${process.env.MODULE === "local" ? "本地 Ollama" : "云端阿里云"})`);
 }

@@ -21,7 +21,7 @@ const configs = {
   }
 } as const;
 
-const key = (process.env.LOCAL || "default") as keyof typeof configs;
+const key = (process.env.MODULE || "default") as keyof typeof configs;
 const rawLlm = new OpenAI(configs[key]);
 
 // ─── Token 跟踪器 ─────────────────────────────────────────────────────

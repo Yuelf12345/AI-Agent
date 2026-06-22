@@ -731,31 +731,212 @@ A: {"complexity": "complex", "reasoning": "需要整合多种架构，涉及系�
 
 ## 8. Agentic RAG（智能体 RAG）
 
-以 **Agent 为核心**，动态规划、自主决策检索策略：
+以 **Agent 为核心**，动态规划、自主决策检索策略。相比前 7 种固定管道式架构，Agentic RAG 让 Agent 根据情况实时调整策略。
+
+**实现文件**：`RAG/8.Agentic RAG.ts`
+
+### 核心架构
 
 ```
-用户查询 → Agent（ReAct / Plan-and-Solve）
-              ├→ Tool 1: 知识库检索
-              ├→ Tool 2: 网络搜索
-              ├→ Tool 3: 数据库查询
-              ├→ Tool N: ...
-              ├→ Short-term Memory（对话历史）
-              ├→ Long-term Memory（用户偏好）
-              ├→ Agent 1 / Agent 2 / Agent 3（多Agent协作）
+用户查询 → Agent（ReAct 循环，单次 LLM 调用同时输出 Thought + Action）
+              ├→ retrieve（知识库检索，支持自动 query 扩展）
+              ├→ calculate（安全数学计算）
+              ├→ ChatMemory（跨轮对话记忆）
+              └→ finish（信息充足时直接回答）
               ↓
          LLM 生成回答
 ```
 
-**核心特征**：
-1. **Agent 为中心**：不是固定流水线，而是 Agent 自主决策
-2. **工具调用**：RAG 检索只是 Agent 的一个工具，还有搜索引擎、代码执行等
-3. **推理+行动循环**（ReAct）：观察→思考→行动→观察→...
-4. **记忆系统**：短期记忆（对话上下文）+ 长期记忆（用户偏好/历史）
-5. **多 Agent 协作**：不同 Agent 负责不同能力，协同完成复杂任务
+### 架构特点
 
 **与前 7 种的本质区别**：
-- 前 7 种是**固定管道**（pipeline），流程预先确定
-- Agentic RAG 是**动态规划**，Agent 根据情况实时调整策略
+
+| 维度 | 前 7 种（固定管道） | Agentic RAG（动态规划） |
+|------|-------------------|----------------------|
+| 决策方式 | 预定义流水线 | Agent 实时决策 |
+| 工具使用 | 固定检索 | 多工具按需调用 |
+| 灵活性 | 低（流程固定） | 高（动态调整） |
+| 复杂度 | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+
+---
+
+### ToolRegistry 模式
+
+代码中的工具注册机制，让 Agent 可动态发现和使用工具：
+
+```typescript
+interface Tool {
+  name: string;
+  description: string;           // 供 LLM 理解工具用途
+  parameters: Record<string, any>; // 工具参数的 JSON Schema
+  execute: (params: any) => Promise<any>;
+}
+
+class ToolRegistry {
+  register(tool: Tool) { ... }
+  get(name: string): Tool | undefined { ... }
+  getToolSchema(): string { ... }  // 生成 LLM 可读的工具描述
+}
+
+const registry = new ToolRegistry();
+registry.register(retrievalTool);
+registry.register(calculatorTool);
+```
+
+> 参考代码：`8.Agentic RAG.ts` 第 104-348 行
+
+---
+
+### 关键设计决策
+
+#### 1. 单次 LLM 调用（Thought + Action 合并）
+
+| 版本 | 每次迭代 LLM 调用 | 问题 |
+|------|------------------|------|
+| 初始 | **2 次**：generateThought() + decideAction() | 效率低，第一次调用的 reasoning 状态可能丢失 |
+| 改进 | **1 次**：统一 JSON 输出 | 效率翻倍，一致性好 |
+
+#### 2. 三层解析降级（JSON → Regex → Fallback）
+
+```
+LLM 输出
+  │
+  ├→ 策略1：提取 JSON 块（parseReactOutput）
+  │   ├→ 成功：解析出 structured thinking
+  │   └→ 失败：降级到策略2
+  │
+  ├→ 策略2：正则匹配（Thought / Action / Finish 模式）
+  │   ├→ 成功：兼容老版本输出格式
+  │   └→ 失败：降级到策略3
+  │
+  └→ 策略3：默认 finish（不会死循环）
+```
+
+> 参考代码：`parseReactOutput()` 函数（第 436-481 行）
+
+#### 3. 跨轮对话记忆（ChatMemory）
+
+```
+interface ChatMemory {
+  role: "user" | "assistant";
+  content: string;
+}
+
+// chatLoop 中维护记忆
+const chatMemory: ChatMemory[] = [];
+// 传入 reactLoop，让 Agent 理解上下文
+const result = await reactLoop(query, chatMemory);
+```
+
+- 每轮用户问题 + 助手回答都追加到记忆数组
+- 最多保留最近 6 轮（`memory.slice(-6)`），避免 Prompt 过长
+
+> 参考代码：`formatChatHistory()` + `chatLoop()`（第 530-537 行、第 675 行）
+
+#### 4. 独立存储路径
+
+使用独立的目录和缓存文件，避免与 Naive RAG 共享存储污染：
+
+| 资源 | Naive RAG | Agentic RAG |
+|------|----------|-------------|
+| 持久化索引 | `storage/` | `storage_agentic/` |
+| 切分缓存 | `cache/naive_nodes.json` | `cache/agentic_nodes.json` |
+
+> 定义在 `constants.ts` 中的 `STORAGE_AGENTIC_DIR` 和 `CACHE_AGENTIC`
+
+#### 5. 安全计算器（递归下降解析）
+
+替换了 `Function()` 构造器，消除代码注入风险：
+
+| 方案 | 安全性 | 能力 |
+|------|-------|------|
+| ❌ `Function("return ...")()` | ❌ 任意代码注入 | 完整 JS 表达式 |
+| ✅ `safeMathEval()` | ✅ 仅支持 +-*/() | 四则运算 |
+
+> 参考代码：`safeMathEval()` 函数（第 216-288 行）
+
+---
+
+### 实战教训：检索召回盲区
+
+**问题**：用户问"prompt 常用框架有哪些"，Agent 只返回了 CRISPE 框架。
+
+**根因**：
+
+```
+用户："prompt常用框架有哪些"
+  ↓
+Agent 发送 retrieve["提示词框架"]（单 query）
+  ↓
+向量搜索 → topK=5 → chunk 0 排第一（包含总述 + CRISPE 详解）
+  ↓
+Agent 换关键词（还是模糊 query）→ 还是 chunk 0
+  ↓
+5 轮用完 → "目前信息主要集中在CRISPE框架上"
+```
+
+**三个层面的解决方案**：
+
+| 方案 | 做法 | 效果 |
+|------|------|------|
+| v1: Prompt 引导多关键词 | 在 ReAct Prompt 中写"用逗号分隔多个关键词" | ❌ LLM 不可靠 |
+| v2: 工具自动 query 扩展 | retrieve 内部检测宽泛词 → LLM 拆解子查询 → 并行检索 | ✅ |
+| v3: Poka-Yoke 原则 | 智能封装在工具内部，不让 LLM 自己做决策 | ✅ 首选 |
+
+**结果**："prompt常用框架有哪些" → 自动扩展为 8 个框架名并行检索 → 一次覆盖全部。
+
+> 参考代码：`expandQuery()` + retrievalTool（第 119-209 行）
+
+---
+
+### 改进汇总
+
+与初始版本相比的核心改进：
+
+| 改进项 | 初始版本 | 改进后 |
+|--------|---------|-------|
+| **LLM 调用** | 每轮 2 次（Thought + Action 分开） | **1 次**（统一 JSON 输出） |
+| **输出格式** | 混用 TOKEN_NAME[...] 和 JSON | **统一 JSON**，3 层解析降级 |
+| **sources 收集** | 从格式化文本 JSON.parse() | **从 rawResult 直接收集** |
+| **对话记忆** | 无（每次独立） | **ChatMemory** 跨轮上下文 |
+| **计算器** | new Function()（代码注入风险） | **safeMathEval()** 递归下降解析 |
+| **存储路径** | 与 Naive RAG 共享 | **独立 storage_agentic/** |
+| **检索召回** | 单 query，依赖 LLM 自觉 | **自动 query 扩展** + 并行检索 |
+| **步骤编号** | 从 0 开始、跳号 | **从 1 开始、连续** |
+
+---
+
+### ReAct Prompt 设计
+
+统一 Prompt 模板，一次性生成 Thought + Action，包含 3 种 few-shot 示例：
+1. **宽泛问题** — 一次检索即可，系统自动扩展查询
+2. **具体问题** — 精准检索某个实体
+3. **简单问答** — 无需工具，直接 finish
+
+> 参考代码：`REACT_SYSTEM_PROMPT`（第 376-433 行）
+
+---
+
+### 与 Adaptive RAG 的对比
+
+| 维度 | Adaptive RAG | Agentic RAG |
+|------|-------------|-------------|
+| **决策方式** | 预定义路由（Simple/Medium/Complex） | Agent 自主规划（ReAct 循环） |
+| **工具范围** | 仅检索（不同粒度） | 检索 + 计算 + 任意自定义工具 |
+| **状态管理** | 无 | ChatMemory 跨轮对话 |
+| **灵活性** | 中等（固定策略集） | 高（动态工具调用） |
+| **成本** | 可预测（2-7 次 LLM） | 不确定（取决于迭代轮数） |
+| **最佳场景** | 问题复杂度差异大 | 需要多工具协作 |
+
+---
+
+### 局限性
+
+1. **Token 消耗高** — 每轮迭代需要完整 Prompt（含历史步骤），token 用量随轮数线性增长
+2. **错误级联** — 某轮判断失误（如选错工具/参数），后续轮次难以纠正
+3. **LLM 可靠性** — 解析输出时仍需降级策略，LLM 的 JSON 格式一致性不稳定
+4. **最大轮数限制** — `MAX_ITERATIONS = 5`，复杂任务可能不够
+5. **观察截断** — 检索结果超过 500 字符会被截断，Agent 可能看不到完整信息
 
 ---
 
