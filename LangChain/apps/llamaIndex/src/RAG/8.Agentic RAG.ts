@@ -3,10 +3,11 @@
  *
  * 核心特性：
  * 1. ReAct 循环：单次 LLM 调用同时输出 Thought + Action，高效且一致
- * 2. 多工具调用：检索、搜索、计算等
+ * 2. 多工具调用：检索、重排序、搜索、计算等
  * 3. 对话记忆：跨轮对话历史，保持上下文连贯
  * 4. 智能路由：基于问题类型自动选择工具
  * 5. 错误处理：超时、降级、重试机制
+ * 6. LLM 重排序：检索后用 LLM 重新打分，提升结果中真正相关信息排序
  *
  * 改进点（对比初始版本）：
  * - 合并双 LLM 调用为单次调用（效率翻倍，一致性保障）
@@ -15,6 +16,7 @@
  * - 增加跨轮对话记忆（chatLoop 维护对话历史传入 reactLoop）
  * - 安全计算器（递归下降解析替代 Function() 构造器）
  * - 独立存储路径（STORAGE_AGENTIC / CACHE_AGENTIC）
+ * - LLM 重排序（检索后用 LLM 核验相关性重新打分）
  */
 
 import path from "path";
@@ -165,10 +167,77 @@ async function expandQuery(originalQuery: string): Promise<string[]> {
   return [originalQuery];
 }
 
-// 工具1: 知识库检索（增强版：自动查询扩展 + 多 query 并行检索 + 去重）
+// ─── LLM 重排序：对检索结果用 LLM 重新打分 ──────────────────────────
+/**
+ * 用 LLM 对检索结果重新打分排序（cross-encoder 替代方案）。
+ *
+ * 向量检索（bi-encoder）只做语义相似度，无法区分"相关但没回答"和"真正回答了"。
+ * LLM 重排序模拟 cross-encoder 效果：让 LLM 判断每个 chunk 对问题的回答质量。
+ *
+ * 为控制成本，仅在 chun k 数量 ≤ 12 时执行，超量回退到向量分排序。
+ */
+const RERANK_THRESHOLD = 12;
+
+async function rerankResults(
+  results: RetrievedSource[],
+  originalQuery: string
+): Promise<RetrievedSource[]> {
+  if (results.length <= 1 || results.length > RERANK_THRESHOLD) {
+    return results; // 太少无需排序，超量回退向量分
+  }
+
+  const rerankPrompt = `以下是针对同一问题检索到的 ${results.length} 个文本片段。请评估每个片段对回答问题的"有用程度"（0-100分）。
+
+评分标准：
+- 90-100：直接包含了答案，无需其他信息
+- 70-89：提供了关键信息，可以直接支撑答案
+- 50-69：提供了部分相关信息，但不够完整
+- 30-49：提到了相关概念，但没有实质性信息
+- 0-29：不相关或只是泛泛而谈
+
+问题：${originalQuery}
+
+${results.map((r, i) => `[片段 ${i}]\n${r.text.substring(0, 400)}`).join("\n\n")}
+
+请严格按 JSON 数组格式输出，每个元素包含 index 和 score：
+[{ "index": 0, "score": 85 }, { "index": 1, "score": 30 }, ...]`;
+
+  try {
+    const resp = await llm.chat({ messages: [{ role: "user", content: rerankPrompt }] });
+    const content = String(resp.message?.content ?? resp);
+    const arrMatch = content.match(/\[[\s\S]*\]/);
+    if (arrMatch) {
+      const scores = JSON.parse(arrMatch[0]) as Array<{ index: number; score: number }>;
+      if (Array.isArray(scores) && scores.length === results.length) {
+        // 按 LLM 分重新排序
+        const scoreMap = new Map<number, number>();
+        for (const s of scores) {
+          scoreMap.set(s.index, s.score);
+        }
+
+        const reranked = results
+          .map((item, i) => ({
+            ...item,
+            score: scoreMap.get(i) ?? item.score, // LLM 分覆盖原始向量分
+          }))
+          .sort((a, b) => b.score - a.score)
+          .map((item, i) => ({ ...item, index: i + 1 }));
+
+        console.log(`   📊 LLM 重排序完成: top-1 得分 ${(reranked[0]!.score).toFixed(0)}/100`);
+        return reranked;
+      }
+    }
+  } catch {
+    console.warn("   ⚠️ LLM 重排序失败，保留原始排序");
+  }
+
+  return results;
+}
+
+// 工具1: 知识库检索（增强版：自动查询扩展 + 多 query 并行检索 + 去重 + LLM 重排序）
 const retrievalTool: Tool = {
   name: "retrieve",
-  description: "从本地知识库检索与查询相关的信息片段。适用于回答关于文档内容的问题。对宽泛查询自动扩展为多个子查询以提升召回率。",
+  description: "从本地知识库检索与查询相关的信息片段。适用于回答关于文档内容的问题。对宽泛查询自动扩展为多个子查询以提升召回率。检索结果会自动经 LLM 重排序，把最相关的排前面。",
   parameters: {
     query: { type: "string", description: "检索查询文本。支持用逗号手动分隔多个关键词，如 'BROKE框架,COSTAR框架'" },
     topK: { type: "number", default: 5, description: "每个子查询返回结果数量（默认5）" }
@@ -199,12 +268,15 @@ const retrievalTool: Tool = {
       }
     }
 
-    // 按相似度降序排列，重新编号
+    // 按向量相似度降序排列
     const sorted = Array.from(allResults.values())
       .sort((a, b) => b.score - a.score)
       .map((item, i) => ({ ...item, index: i + 1 }));
 
-    return sorted;
+    // LLM 重排序：用 LLM 判断真正回答了问题的 chunk
+    const reranked = await rerankResults(sorted, query);
+
+    return reranked;
   }
 };
 
