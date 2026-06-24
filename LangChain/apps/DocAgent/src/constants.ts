@@ -1,0 +1,53 @@
+/**
+ * 全局路径常量
+ */
+
+import path from "path";
+import { fileURLToPath } from "url";
+
+// ─── 基础路径 ────────────────────────────────────────────────────────
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const PROJECT_ROOT = path.resolve(__dirname, "..");
+
+// ─── 日志目录 ─────────────────────────────────────────────────────────
+export const LOG_DIR = path.resolve(PROJECT_ROOT, "log");
+
+// ─── 数据源路径 ─────────────────────────────────────────────────────
+/** 文件数据目录（PDF、Markdown 等） */
+export const FILE_DIR = path.resolve(PROJECT_ROOT, "files");
+
+/** 图片数据目录 */
+export const IMAGE_DIR = path.resolve(FILE_DIR, "images");
+
+// ─── 持久化存储路径 ──────────────────────────────────────────────────
+/** Naive RAG 索引持久化目录 */
+export const STORAGE_DIR = path.resolve(PROJECT_ROOT, "storage");
+
+/** Multimodal RAG 索引持久化目录 */
+export const STORAGE_MULTIMODAL_DIR = path.resolve(PROJECT_ROOT, "storage_multimodal");
+
+// ─── 缓存路径 ────────────────────────────────────────────────────────
+/** 缓存根目录 */
+export const CACHE_DIR = path.resolve(PROJECT_ROOT, "cache");
+
+/** Naive RAG 切分结果缓存 */
+export const CACHE_NAIVE = path.resolve(CACHE_DIR, "naive_nodes.json");
+
+/** Multimodal RAG 切分结果缓存 */
+export const CACHE_MULTIMODAL = path.resolve(CACHE_DIR, "multimodal_nodes.json");
+
+/** Vision LLM 生成的图片描述缓存 */
+export const CACHE_IMAGE_DESC = path.resolve(CACHE_DIR, "image_descriptions.json");
+
+// ─── Agentic RAG 路径 ────────────────────────────────────────────────
+/** Agentic RAG 索引持久化目录 */
+export const STORAGE_AGENTIC_DIR = path.resolve(PROJECT_ROOT, "storage_agentic");
+export const CACHE_EXISTING_INDEX = path.join(STORAGE_AGENTIC_DIR, "doc_store.json");
+
+/** Agentic RAG 切分结果缓存 */
+export const CACHE_AGENTIC = path.resolve(CACHE_DIR, "agentic_nodes.json");
+
+// ─── Graph RAG 缓存路径 ──────────────────────────────────────────────
+/** Graph RAG 完整索引缓存（图+实体索引+社区+声明，单文件） */
+export const CACHE_GRAPH_INDEX = path.resolve(CACHE_DIR, "graph_index.json");
