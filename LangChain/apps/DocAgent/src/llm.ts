@@ -109,7 +109,7 @@ class TokenTracker {
         "",
         "  逐条明细:",
         ...this.records.map((r, i) =>
-          `   [${i + 1}] 输入${r.inputTokens}t → 输出${r.outputTokens}t  ${r.label.slice(0, 50)}`
+          `   [${i + 1}] 输入${r.inputTokens}t → 输出${r.outputTokens}t  ${r.label.slice(0, 500)}`
         ),
       ].join("\n"), "utf-8");
 
@@ -140,7 +140,7 @@ const llm = new Proxy(rawLlm, {
         // 估算输出 token
         const outputText = resp?.message?.content || "";
         const outputTokens = estimateTokens(outputText);
-        const label = params.messages?.[0]?.content?.slice(0, 30) || "";
+        const label = params.messages?.[0]?.content?.slice(0, 500) || "";
 
         tokenTracker.track(inputTokens, outputTokens, label);
 

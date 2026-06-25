@@ -5,8 +5,8 @@ import * as readline from "readline";
 // ─── LlamaIndex 核心模块 ────────────────────────────────────────────
 import { SimpleDirectoryReader } from "@llamaindex/readers/directory";
 import { TextFileReader } from "@llamaindex/readers/text";
-import { Document, TextNode } from "@llamaindex/core/schema";
-import { SentenceWindowNodeParser } from "@llamaindex/core/node-parser";
+import { TextNode } from "@llamaindex/core/schema";
+import { sentenceChunk, recursiveChunk } from './chunk.ts'
 import {
   VectorStoreIndex,
   storageContextFromDefaults,
@@ -39,21 +39,6 @@ const loadFile = async (directoryPath: string) => {
   return documents;
 }
 
-const chunk = async (documents: Document[]) => {
-  const parser = new SentenceWindowNodeParser({ windowSize: 3 });
-  const nodes = parser.buildWindowNodesFromDocuments(documents);
-  console.log(`📊 切分出 ${nodes.length} 个 chunk`);
-  const cacheDir = path.dirname(CACHE_AGENTIC);
-  if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
-  fs.writeFileSync(
-    CACHE_AGENTIC,
-    JSON.stringify(nodes.map((n) => ({ text: n.text, id_: n.id_, metadata: n.metadata })).sort()),
-    "utf-8",
-  );
-  console.log(`💾 切分结果已缓存到 ${CACHE_AGENTIC}`);
-  return nodes;
-}
-
 // ═══════════════════════════════════════════════════════════════════
 //  Step 3: 向量化 & 建索引（含持久化）
 // ═══════════════════════════════════════════════════════════════════
@@ -72,7 +57,7 @@ if (hasExistingIndex) {
     console.log(`📊 从缓存加载 ${nodes.length} 个 chunk`);
   } else {
     const documents = await loadFile(FILE_DIR);
-    nodes = await chunk(documents);
+    nodes = await sentenceChunk(documents);
   }
   console.log("⏳ 正在生成 embedding 并构建向量索引...");
   index = await VectorStoreIndex.init({ nodes, storageContext });
@@ -165,10 +150,22 @@ async function expandQuery(originalQuery: string): Promise<string[]> {
 
 这是一个宽泛的问题，请从 3-5 个不同的角度改写为具体的子查询，用于向量检索。
 
-要求：
-- 每个子查询应该是一个完整的查询词组，从不同角度覆盖用户意图
-- ❌ 不要枚举实体名（如"CRISPE框架"、"BROKE框架"）
-- ✅ 要从不同语义角度改写（如"提示词框架列表"、"prompt engineering 方法论"、"提示词设计模式"）
+每个子查询必须从**截然不同的语义角度**出发，不能相似。
+输出必须确保多样性，否则检索会重复命中同一批结果。
+
+✅ 好例子（角度完全不同）：
+  - "提示词框架列表"           ← 框架枚举角度
+  - "prompt engineering 设计模式"  ← 英文专业术语角度
+  - "提示词结构化和方法论"       ← 方法论角度
+
+❌ 坏例子（角度雷同）：
+  - "提示词框架"、"提示词框架列表"、"框架有哪些"  ← 全部框架列举角度
+  - "应用场景"、"设计原则"、"实现方法"            ← 全部抽象概念
+
+约束：
+- 至少 2 个 query 使用与用户提问不同的语言（如中英混搭）
+- 每个 query 必须能从不同语义维度命中不同的知识库内容
+- 如果两个 query 的词重叠 > 60%，说明角度不够多样
 
 输出格式：仅输出 JSON 字符串数组，不要其他内容。
 如：["提示词框架", "prompt engineering design patterns", "提示词设计模式"]`;
@@ -210,14 +207,16 @@ async function rerankResults(
     return results; // 太少无需排序，超量回退向量分
   }
 
-  const rerankPrompt = `以下是针对同一问题检索到的 ${results.length} 个文本片段。请评估每个片段对回答问题的"有用程度"（0-100分）。
+  const rerankPrompt = `以下是针对同一问题检索到的 ${results.length} 个文本片段。请判断每个片段对回答问题的"直接帮助程度"（0-100分）。
 
 评分标准：
-- 90-100：直接包含了答案，无需其他信息
-- 70-89：提供了关键信息，可以直接支撑答案
-- 50-69：提供了部分相关信息，但不够完整
-- 30-49：提到了相关概念，但没有实质性信息
-- 0-29：不相关或只是泛泛而谈
+- 90-100：直接包含问题的答案内容，如列举了具体的技术/方法/条目
+- 70-89：包含与答案密切相关的内容，稍加整理即可得到答案
+- 50-69：提到了相关领域的概念，但只是背景介绍或注意事项，未直接回答问题
+- 30-49：仅包含查询中的关键词散落在不同地方，实际信息量很低
+- 0-29：不相关
+
+⚠️ 注意：请判断片段是否**直接能回答**用户的问题，而不是仅包含查询关键词就视为相关。
 
 问题：${originalQuery}
 
@@ -242,12 +241,12 @@ ${results.map((r, i) => `[片段 ${i}]\n${r.text.substring(0, 400)}`).join("\n\n
         const reranked = results
           .map((item, i) => ({
             ...item,
-            score: scoreMap.get(i) ?? item.score, // LLM 分覆盖原始向量分
+            score: scoreMap.has(i) ? scoreMap.get(i)! / 100 : item.score, // LLM 分归一化到 0-1
           }))
           .sort((a, b) => b.score - a.score)
           .map((item, i) => ({ ...item, index: i + 1 }));
 
-        console.log(`   📊 LLM 重排序完成: top-1 得分 ${(reranked[0]!.score).toFixed(0)}/100`);
+        console.log(`   📊 LLM 重排序完成: top-1 得分 ${(reranked[0]!.score * 100).toFixed(0)}/100`);
         return reranked;
       }
     }
@@ -269,20 +268,21 @@ const retrieveTool: Tool = {
   execute: async ({ query, topK = 5 }: { query: string; topK?: number }): Promise<RetrievedSource[]> => {
     // 自动扩展查询：宽泛问题 → 多个子查询
     const queries = await expandQuery(query);
-    const allResults: Map<string, RetrievedSource> = new Map(); // 按 text 去重
+    console.log(`   🔎 检索查询: ${JSON.stringify(queries)}`);
+    const allResults: Map<string, RetrievedSource> = new Map();
 
     for (const q of queries) {
       const retriever = index.asRetriever({ similarityTopK: topK });
       const nodes = await retriever.retrieve(q);
+      console.log(`     query="${q}" → ${nodes.length} 条结果`);
 
       for (const n of nodes) {
         const text = (n.node as any).text as string;
         const score = n.score ?? 0;
-        // 去重：同一文本只保留最高分
         const existing = allResults.get(text);
         if (!existing || existing.score < score) {
           allResults.set(text, {
-            index: 0, // 后续重新编号
+            index: 0,
             text,
             score,
             metadata: (n.node as any).metadata as Record<string, any>,
@@ -291,13 +291,28 @@ const retrieveTool: Tool = {
       }
     }
 
-    // 按向量相似度降序排列
     const sorted = Array.from(allResults.values())
       .sort((a, b) => b.score - a.score)
       .map((item, i) => ({ ...item, index: i + 1 }));
+    const score = sorted.map((item,i) => item.score)
+    console.log(`   📊 结果得分: [${score.map(s => (s*100).toFixed(0)).join(', ')}]`);
+    console.log(`   📦 去重后 ${sorted.length} 个结果, 最高分 ${((sorted[0]?.score ?? 0) * 100).toFixed(1)}%`);
 
-    // LLM 重排序：用 LLM 判断真正回答了问题的 chunk
+    // 低分警告
+    const topScore = sorted[0]?.score ?? 0;
+    if (topScore < 0.5) {
+      console.log(`   ⚠️ 检索结果得分偏低(${(topScore * 100).toFixed(1)}%)，知识库可能不包含相关内容`);
+    }
+
     const reranked = await rerankResults(sorted, query);
+
+    // 打印最终检索到的 chunk 信息
+    console.log("   ┌─ 检索结果 ──────────────────────────────────");
+    reranked.forEach((r, i) => {
+      const firstLine = r.text.split("\n")[0]!.trim().substring(0, 60);
+      console.log(`   │ [${i + 1}] (${(r.score * 100).toFixed(1)}%) ${firstLine}`);
+    });
+    console.log("   └─────────────────────────────────────────────");
 
     return reranked;
   }
@@ -334,6 +349,18 @@ registry.register(summarizeTool);
 registry.register(retrieveTool);
 
 console.log(`✅ 已注册 ${registry.list().length} 个工具`);
+
+/**
+ * 计算两段观察文本的相似度（基于 Token 重叠率）
+ */
+function observationSimilarity(a: string, b: string): number {
+  const tokenize = (s: string) => new Set(s.split(/[\s,，。、；：()（）]+/).filter(t => t.length > 1));
+  const setA = tokenize(a);
+  const setB = tokenize(b);
+  if (setA.size === 0 && setB.size === 0) return 1;
+  const intersection = new Set([...setA].filter(x => setB.has(x)));
+  return intersection.size / Math.max(setA.size, setB.size);
+}
 
 /**
  * ReAct 主循环
@@ -376,7 +403,7 @@ const REACT_SYSTEM_PROMPT = `你是一个智能助手，使用 ReAct (Reasoning 
 工具说明：
 - retrieve: 从知识库检索信息，params: {"query": "查询文本", "topK": 5}
   💡 对宽泛查询（如"有哪些"/"列出"/"介绍"等），系统会自动扩展为多个子查询并行检索，一次 retrieve 即可覆盖全面
-- summarize: 对文本进行摘要整理。**当多轮检索已积累足够信息，或检索结果分散在多段中需要合并时使用**。将多个片段合并、提炼、结构化输出，生成连贯的最终回答。params: {"text": "待总结文本", "focus": "关注点"}
+- summarize: 对文本进行摘要整理。**仅当检索结果的信息分散在多个片段中真正需要合并时才使用**；如果单个片段已能回答问题，请直接 finish。params: {"text": "待总结文本", "focus": "关注点"}
 - finish: 信息充足时直接回答，params: {}，必须同时提供 "response"
 
 重要规则：
@@ -384,7 +411,9 @@ const REACT_SYSTEM_PROMPT = `你是一个智能助手，使用 ReAct (Reasoning 
 - 仔细观察工具返回的结果再决定下一步
 - 如果检索结果已覆盖所有内容，直接 finish，无需反复检索
 - 如果信息充足，立即 finish
-- 不要编造信息，基于观察到的内容回答
+- **如果检索结果与用户问题不相关或信息不足，必须明确告知用户知识库中未找到相关内容，不得根据自身知识编造**
+- **检索结果列表中的 [N] 项应全部检查，不要只看第一项就下结论**
+- 不要编造信息，严格基于观察到的内容回答
 - 对于简单问候或通用问题，直接 finish，无需使用工具
 
 示例 1（宽泛问题 - 一次检索即可）：
@@ -399,15 +428,21 @@ Question: CRISPE框架的C代表什么？
 Observation: [CRISPE的详细解释...]
 {"thought": "找到了CRISPE框架的详细解释，C代表Capacity and Role", "tool": "finish", "params": {}, "response": "CRISPE框架中C代表Capacity and Role（角色定位）..."}
 
-示例 3（信息整理 - 检索后用 summarize 整合）：
+示例 3（检索后直接 finish，不调用 summarize）：
 Question: 帮我总结一下BROKE框架的优缺点
 {"thought": "具体问题，需要先检索BROKE框架的详细内容", "tool": "retrieve", "params": {"query": "BROKE框架", "topK": 5}}
 Observation: [检索到3个关于BROKE框架的片段，分别介绍了不同方面]
-{"thought": "已经检索到多个相关片段，需要整理成结构化的总结", "tool": "summarize", "params": {"text": "[检索到的3个片段内容...]", "focus": "优缺点", "maxLength": 300}}
-Observation: [BROKE框架的优缺点总结]
-{"thought": "已经完成总结，可以直接回答", "tool": "finish", "params": {}, "response": "BROKE框架的优缺点如下：..."}
+{"thought": "检索结果已包含BROKE框架的所有方面，可以直接回答", "tool": "finish", "params": {}, "response": "BROKE框架的优缺点如下：..."}
 
-示例 4（简单问答）：
+示例 4（仅当信息真正分散需合并时才用 summarize）：
+Question: 帮我对比CRISPE和BROKE框架的异同
+{"thought": "需要先检索两个框架的详细信息", "tool": "retrieve", "params": {"query": "CRISPE BROKE 框架对比", "topK": 5}}
+Observation: [5个片段分别介绍了CRISPE和BROKE的不同方面，信息分散在多个chunk中]
+{"thought": "信息分散在多个片段中，需要合并后对比", "tool": "summarize", "params": {"text": "5个片段的合并内容...", "focus": "异同对比", "maxLength": 400}}
+Observation: [CRISPE和BROKE框架的异同总结]
+{"thought": "对比完成，可以直接回答", "tool": "finish", "params": {}, "response": "CRISPE和BROKE框架的异同如下：..."}
+
+示例 5（简单问答）：
 Question: 你好
 {"thought": "简单的问候，不需要使用工具", "tool": "finish", "params": {}, "response": "你好！有什么可以帮助你的吗？"}
 
@@ -483,13 +518,21 @@ async function executeTool(toolName: string, params: any): Promise<{
   }
   try {
     const rawResult = await tool.execute(params);
-
     // 格式化结果为可读文本（供 LLM 观察）
     let observation: string;
     if (Array.isArray(rawResult)) {
-      observation = rawResult.map((item: RetrievedSource) =>
-        `[${item.index}] (相似度: ${(item.score * 100).toFixed(1)}%)\n${item.text.substring(0, 500)}${item.text.length > 500 ? "..." : ""}`
-      ).join("\n\n");
+      observation = rawResult.map((item: RetrievedSource) => {
+        const displayText = (item.metadata?.window as string) || item.text;
+        return `[${item.index}] (相似度: ${(item.score * 100).toFixed(1)}%)\n${displayText.substring(0, 1500)}${displayText.length > 1500 ? "..." : ""}`;
+      }).join("\n\n");
+
+      // 低分警告：top-1 得分低于 50% → 在 Observation 开头加提示
+      const topScore = rawResult[0]?.score ?? 0;
+      if (topScore < 0.5) {
+        observation = `⚠️ 检索结果得分偏低（最高 ${(topScore * 100).toFixed(1)}%），知识库可能不包含与用户问题直接相关的内容，请如实告知用户。\n\n${observation}`;
+      } else if (topScore < 0.7) {
+        observation = `ℹ️ 检索结果相关性一般（最高 ${(topScore * 100).toFixed(1)}%），部分内容可能不够准确。\n\n${observation}`;
+      }
     } else {
       observation = typeof rawResult === 'string' ? rawResult : JSON.stringify(rawResult, null, 2);
     }
@@ -504,12 +547,16 @@ async function executeTool(toolName: string, params: any): Promise<{
   }
 }
 
-/** 格式化 ReAct 步骤历史 */
+/** 格式化 ReAct 步骤历史（只保留最近 3 步） */
 function formatReactHistory(steps: ReactStep[]): string {
   if (steps.length === 0) return "无";
-  return steps.map((s, i) =>
-    `[第${i + 1}轮]\nThought: ${s.thought}\nAction: ${s.action}(${JSON.stringify(s.params)})${s.observation ? `\nObservation: ${s.observation.substring(0, 300)}` : ""}`
-  ).join("\n\n");
+  const recent = steps.slice(-3);
+  return recent.map((s, i) => {
+    const stepIndex = steps.length - recent.length + i + 1;
+    return (
+      `[第${stepIndex}轮]\nThought: ${s.thought.substring(0, 100)}\nAction: ${s.action}(${JSON.stringify(s.params)})${s.observation ? `\nObservation: ${s.observation}` : ""}`
+    );
+  }).join("\n\n");
 }
 
 /** 格式化对话记忆（只保留最近 6 轮） */
@@ -517,7 +564,7 @@ function formatChatHistory(memory: ChatMemory[]): string {
   if (memory.length === 0) return "无";
   const recent = memory.slice(-6);
   return recent.map(m =>
-    m.role === "user" ? `用户: ${m.content}` : `助手: ${m.content.substring(0, 200)}`
+    m.role === "user" ? `用户: ${m.content}` : `助手: ${m.content}`
   ).join("\n");
 }
 
@@ -554,7 +601,10 @@ ${formatChatHistory(chatHistory)}
 
 ${formatReactHistory(steps)}
 
-如果信息不足，请明确指出。`;
+要求：
+- 如果信息不足或与问题不相关，**必须明确告知用户没有找到相关内容**
+- 不要编造知识库中没有的信息
+- 如果信息足够，准确总结`;
 
   const response = await llm.chat({ messages: [{ role: "user", content: prompt }] });
   return String(response.message?.content ?? response);
@@ -578,7 +628,8 @@ ${formatReactHistory(steps)}
 要求：
 - 直接给出最终答案，不要解释为什么不再检索
 - 如果信息足够，完整回答
-- 如果信息不足，如实说明`;
+- 如果信息不足或与问题不相关，**必须明确告知用户没有找到相关内容**
+- 不要编造知识库中没有的信息`;
 
   const response = await llm.chat({ messages: [{ role: "user", content: prompt }] });
   return String(response.message?.content ?? response);
@@ -607,7 +658,8 @@ const reactLoop = async (
       .replace("{tools}", registry.getDescription())
       .replace("{question}", userQuery)
       .replace("{chat_history}", formatChatHistory(chatHistory))
-      .replace("{tools_description}", registry.getToolSchema());
+      .replace("{tools_description}", registry.getToolSchema())
+      .replace("{react_history}", formatReactHistory(steps));
     // 2. LLM 推理并输出 Thought + Action（JSON 格式）
     const response = await llm.chat({ messages: [{ role: "user", content: prompt }] });
     // 3. 解析 Action 并执行
@@ -616,18 +668,12 @@ const reactLoop = async (
     console.log(`💭 Thought: ${decision.thought.substring(0, 100)}...`);
     console.log(`🎯 Action: ${decision.tool}`);
 
-    // 检测重复检索：同样的工具+参数已经执行过，强制 finish
-    // if (decision.tool !== "finish") {
-    //   const isDuplicate = steps.some(s =>
-    //     s.action === decision.tool &&
-    //     JSON.stringify(s.params) === JSON.stringify(decision.params)
-    //   );
-    //   if (isDuplicate) {
-    //     console.log("⚠️ 检测到重复操作，强制结束");
-    //     finalAnswer = await summarizeExistingResults(userQuery, steps, chatHistory);
-    //     steps.push({ thought: decision.thought, action: "finish", params: {} });
-    //     break;
-    //   }
+    // // 检测重复检索：上一轮调了同一个工具 → 强制结束
+    // if (decision.tool !== "finish" && steps.length > 0 && steps[steps.length - 1]!.action === decision.tool) {
+    //   console.log("⚠️ 检测到重复操作，强制结束");
+    //   finalAnswer = await summarizeExistingResults(userQuery, steps, chatHistory);
+    //   steps.push({ thought: decision.thought, action: "finish", params: {} });
+    //   break;
     // }
 
     // 4. 更新记忆 & 循环或结束
@@ -639,8 +685,30 @@ const reactLoop = async (
       break;
     }
 
-    const { observation, rawResult } = await executeTool(decision.tool, decision.params);
-    console.log(`👁️  Observation: ${observation.substring(0, 100)}...`);
+    let { observation, rawResult } = await executeTool(decision.tool, decision.params);
+    console.log(`👁️  Observation: ${observation.substring(0, 200)}...`);
+
+    // 自动压缩 Observation 用于历史记录（复用 summarize 工具）
+    // if (observation) {
+    //   try {
+    //     const compressed = await summarizeTool.execute({ text: observation, focus: "核心发现", maxLength: 80 });
+    //     if (compressed) observation = compressed;
+    //   } catch {
+    //     observation = observation.substring(0, 100);
+    //   }
+    // }
+
+    // 观察结果相似度检测：与上次 Observation 太像 → 强制结束
+    if (steps.length > 0 && steps[steps.length - 1]!.observation) {
+      const prevObs = steps[steps.length - 1]!.observation!;
+      const similarity = observationSimilarity(observation, prevObs);
+      if (similarity > 0.7) {
+        console.log(`⚠️ 检测到观察结果重复（相似度 ${(similarity * 100).toFixed(0)}%），强制结束`);
+        finalAnswer = await summarizeExistingResults(userQuery, steps, chatHistory);
+        steps.push(step);
+        break;
+      }
+    }
 
     step.observation = observation;
     step.rawResult = rawResult;
