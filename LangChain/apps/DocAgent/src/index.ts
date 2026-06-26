@@ -130,8 +130,6 @@ class ToolRegistry {
  *
  * 例如："常用提示词框架有哪些" → ["提示词框架", "prompt engineering 设计模式", "提示词设计模板"]
  */
-const BROAD_QUERY_PATTERNS = /有哪些|列出|所有|常用|包括|分别|介绍|概述|总结|列举|各种|不同|分类/g;
-
 async function expandQuery(originalQuery: string): Promise<string[]> {
   // 先检查是否已手动输入多 query（逗号分隔）
   const manualQueries = originalQuery.split(/[,，、]/).map(q => q.trim()).filter(Boolean);
@@ -139,28 +137,42 @@ async function expandQuery(originalQuery: string): Promise<string[]> {
     return manualQueries; // 用户已手动拆分，直接使用
   }
 
-  // 检测是否是宽泛查询
-  const isBroad = BROAD_QUERY_PATTERNS.test(originalQuery);
-  if (!isBroad) {
-    return [originalQuery]; // 具体问题，不需要扩展
-  }
-
-  // 用 LLM 扩展查询（Multi-Query：生成多个角度不同的 query）
+  // 让 LLM 判断是否需要扩展查询
   const expandPrompt = `用户提问："${originalQuery}"
 
-这是一个宽泛的问题，请从 3-5 个不同的角度改写为具体的子查询，用于向量检索。
+请判断：这个问题是否需要从多个角度检索才能覆盖全面？
+
+需要扩展的场景：
+- "有哪些"、"列出所有"、"介绍"、"总结" 等宽泛查询
+- 问题涉及多个子概念（如"提示词框架和推理技术"）
+
+不需要扩展的场景：
+- 具体到单一知识点（如"CRISPE的C代表什么"、"COSTAR适用于什么场景"）
+- 问某个具体概念的定义
+
+如果不需要扩展，输出：[ "${originalQuery}" ]
+如果需要扩展，生成 3-5 个不同角度的子查询。
 
 每个子查询必须从**截然不同的语义角度**出发，不能相似。
 输出必须确保多样性，否则检索会重复命中同一批结果。
+
+**对于要求枚举全部的问题（如"列出所有"），生成的子查询必须用不同的关键词覆盖所有具体条目，不能遗漏任何可能的结果。**
+**关键技巧：让部分子查询针对不同的内容领域（如"问题解决场景"、"方法论文献"、"定义列表"），而不是全都围着同一个中心词打转。**
 
 ✅ 好例子（角度完全不同）：
   - "提示词框架列表"           ← 框架枚举角度
   - "prompt engineering 设计模式"  ← 英文专业术语角度
   - "提示词结构化和方法论"       ← 方法论角度
+  - "RACE COSTAR 问题解决"      ← 具体框架名 + 应用领域
 
 ❌ 坏例子（角度雷同）：
   - "提示词框架"、"提示词框架列表"、"框架有哪些"  ← 全部框架列举角度
-  - "应用场景"、"设计原则"、"实现方法"            ← 全部抽象概念
+
+🚨 **以下模式也会导致重复命中同一批结果，必须避免**：
+  - 所有 query 都以 "提示词框架" 开头，只换后缀
+  - 所有 query 都是 "概念A 概念B" 的抽象组合，没有具体条目名
+  ✅ 应该混入具体框架名：如 "RACE 框架"、"BROKE 目标设定"
+  ✅ 应该混入内容场景：如 "问题解决 场景 框架"、"语言风格 框架"
 
 约束：
 - 至少 2 个 query 使用与用户提问不同的语言（如中英混搭）
@@ -325,9 +337,9 @@ const summarizeTool: Tool = {
   parameters: {
     text: { type: "string", description: "需要总结的文本内容" },
     focus: { type: "string", default: "", description: "总结的关注重点（可选），如'优缺点'、'核心步骤'、'关键结论'" },
-    maxLength: { type: "number", default: 200, description: "摘要目标字数（默认200）" },
+    maxLength: { type: "number", default: 500, description: "摘要目标字数（默认200）" },
   },
-  execute: async ({ text, focus, maxLength = 200 }: { text: string; focus?: string; maxLength?: number }) => {
+  execute: async ({ text, focus, maxLength = 500 }: { text: string; focus?: string; maxLength?: number }) => {
     const prompt = `请对以下文本进行摘要总结${focus ? `，重点关注：${focus}` : ""}。
 目标字数：${maxLength} 字以内。
 
@@ -402,7 +414,10 @@ const REACT_SYSTEM_PROMPT = `你是一个智能助手，使用 ReAct (Reasoning 
 
 工具说明：
 - retrieve: 从知识库检索信息，params: {"query": "查询文本", "topK": 5}
-  💡 对宽泛查询（如"有哪些"/"列出"/"介绍"等），系统会自动扩展为多个子查询并行检索，一次 retrieve 即可覆盖全面
+  💡 对宽泛查询系统会自动扩展为多个子查询并行检索
+  检索结果会展示 📋 检索目录 + 详细内容，请先扫描目录了解全貌
+  对于"列出所有"等枚举问题，目录可以帮你快速发现是否有遗漏的条目（如编号不连续、名称缺失等）
+  **如果 catalog 看起来不完整（如只有 7 条但编号到 8），请再次 retrieve 用不同关键词补查遗漏部分**
 - summarize: 对文本进行摘要整理。**仅当检索结果的信息分散在多个片段中真正需要合并时才使用**；如果单个片段已能回答问题，请直接 finish。params: {"text": "待总结文本", "focus": "关注点"}
 - finish: 信息充足时直接回答，params: {}，必须同时提供 "response"
 
@@ -413,14 +428,24 @@ const REACT_SYSTEM_PROMPT = `你是一个智能助手，使用 ReAct (Reasoning 
 - 如果信息充足，立即 finish
 - **如果检索结果与用户问题不相关或信息不足，必须明确告知用户知识库中未找到相关内容，不得根据自身知识编造**
 - **检索结果列表中的 [N] 项应全部检查，不要只看第一项就下结论**
+- **对于要求完整枚举的问题（如"列出所有"、"全部有哪些"、"各种"等），必须在确认检索结果已覆盖全部信息后才能 finish；如果检测到结果只包含部分信息（如只列了 3 个但实际有 8 个），应继续检索直到覆盖完整**
 - 不要编造信息，严格基于观察到的内容回答
 - 对于简单问候或通用问题，直接 finish，无需使用工具
+- **不要频繁调用 summarize——检索结果单一片段已能回答时，直接 finish 即可，不需要合并或提炼**
 
-示例 1（宽泛问题 - 一次检索即可）：
-Question: prompt常用框架有哪些？
-{"thought": "这是一个宽泛的列举问题，retrieve会自动扩展查询，一次检索应该能覆盖多个框架", "tool": "retrieve", "params": {"query": "prompt常用框架有哪些", "topK": 5}}
-Observation: [检索到8个框架的详细信息...]
-{"thought": "检索结果已经包含CRISPE、BROKE、COSTAR等所有框架信息，可以总结了", "tool": "finish", "params": {}, "response": "常用提示词框架包括：1. CRISPE框架...2. BROKE框架...3. COSTAR框架..."}
+示例 1（简单问题 - 单次检索）：
+Question: CRISPE 的 C 代表什么？
+{"thought": "具体问题，直接检索就能找到答案", "tool": "retrieve", "params": {"query": "CRISPE C 代表什么", "topK": 5}}
+Observation: 📋 检索目录: [1] CRISPE 框架 (95%)... → 详细内容: C = Capacity and Role
+{"thought": "已找到CRISPE的C代表Capacity and Role", "tool": "finish", "params": {}, "response": "CRISPE的C代表Capacity and Role（角色定位）。"}
+
+示例 2（枚举问题 - 多轮检索）：
+Question: 列出所有提示词框架
+Round 1: {"thought": "枚举问题，先检索看有哪些框架", "tool": "retrieve", "params": {"query": "提示词框架列表", "topK": 5}}
+Observation: 📋 检索目录: [1] CRISPE 95% [2] RISEN 90% ... [7] TAG 15% — 只有 7 个，可能不完整
+Round 2: {"thought": "catalog 显示 7 个框架，可能有遗漏（如 RACE 框架），补查遗漏的框架", "tool": "retrieve", "params": {"query": "RACE RASCEF 框架 问题解决", "topK": 5}}
+Observation: 📋 检索目录新增结果
+{"thought": "补充检索后发现 RACE 框架，共 8 个框架，完整了", "tool": "finish", "params": {}, "response": "共 8 个提示词框架：1.CRISPE 2.BROKE 3.COSTAR 4.RISEN 5.APE 6.RASCEF 7.TAG 8.RACE"}
 
 示例 2（具体问题）：
 Question: CRISPE框架的C代表什么？
@@ -456,6 +481,21 @@ Question: 你好
 
 请输出 JSON：`;
 
+/** 修复 JSON 中字符串值内的未转义换行符（LLM 输出的常见问题） */
+function sanitizeJSON(raw: string): string {
+  let result = "";
+  let inStr = false;
+  let escape = false;
+  for (const ch of raw) {
+    if (escape) { escape = false; result += ch; continue; }
+    if (ch === "\\") { escape = true; result += ch; continue; }
+    if (ch === '"' && !escape) { inStr = !inStr; result += ch; continue; }
+    if (inStr && (ch === "\n" || ch === "\r")) { result += "\\n"; continue; }
+    result += ch;
+  }
+  return result;
+}
+
 /** 解析 LLM 输出为结构化决策 */
 function parseReactOutput(rawContent: string): {
   thought: string;
@@ -475,7 +515,19 @@ function parseReactOutput(rawContent: string): {
         response: parsed.response != null ? String(parsed.response) : undefined,
       };
     } catch {
-      // JSON 解析失败，继续降级
+      // JSON 解析失败 → 尝试修复未转义换行符后重试
+      try {
+        const fixed = sanitizeJSON(jsonMatch[0]);
+        const parsed = JSON.parse(fixed);
+        return {
+          thought: String(parsed.thought || ""),
+          tool: String(parsed.tool || "finish").toLowerCase(),
+          params: parsed.params || {},
+          response: parsed.response != null ? String(parsed.response) : undefined,
+        };
+      } catch {
+        // 双重修复失败，继续降级
+      }
     }
   }
 
@@ -521,17 +573,33 @@ async function executeTool(toolName: string, params: any): Promise<{
     // 格式化结果为可读文本（供 LLM 观察）
     let observation: string;
     if (Array.isArray(rawResult)) {
-      observation = rawResult.map((item: RetrievedSource) => {
-        const displayText = (item.metadata?.window as string) || item.text;
-        return `[${item.index}] (相似度: ${(item.score * 100).toFixed(1)}%)\n${displayText.substring(0, 1500)}${displayText.length > 1500 ? "..." : ""}`;
-      }).join("\n\n");
+      // 过滤低分噪音：只保留 >= 15% 的结果（挡住 0% 的真噪音即可）
+      const highScoreResult = rawResult.filter((item: RetrievedSource) => item.score >= 0.15);
+      const filteredCount = rawResult.length - highScoreResult.length;
 
-      // 低分警告：top-1 得分低于 50% → 在 Observation 开头加提示
-      const topScore = rawResult[0]?.score ?? 0;
-      if (topScore < 0.5) {
-        observation = `⚠️ 检索结果得分偏低（最高 ${(topScore * 100).toFixed(1)}%），知识库可能不包含与用户问题直接相关的内容，请如实告知用户。\n\n${observation}`;
-      } else if (topScore < 0.7) {
-        observation = `ℹ️ 检索结果相关性一般（最高 ${(topScore * 100).toFixed(1)}%），部分内容可能不够准确。\n\n${observation}`;
+      // 构建紧凑的检索目录（LLM 一屏扫完所有结果）
+      const catalogLines = highScoreResult.map(item => {
+        const heading = item.text.match(/【([^】]+)】/)?.[1] || item.text.split("\n")[0] || "(未知来源)";
+        return `[${item.index}] ${(item.score * 100).toFixed(0)}% ${heading}`;
+      });
+      const catalogStr = `📋 检索目录（共 ${highScoreResult.length} 项）:\n${catalogLines.join("\n")}`;
+
+      // 构建详细内容（参考用）
+      const detailBlocks = highScoreResult.map((item: RetrievedSource) => {
+        const displayText = (item.metadata?.window as string) || item.text;
+        return `[${item.index}] (${(item.score * 100).toFixed(1)}%)\n${displayText.substring(0, 1500)}${displayText.length > 1500 ? "..." : ""}`;
+      });
+      const detailStr = `━━━ 详细内容 ━━━\n${detailBlocks.join("\n\n")}`;
+
+      observation = `${catalogStr}\n\n${detailStr}`;
+
+      if (filteredCount > 0) {
+        observation += `\n\n（已过滤 ${filteredCount} 条低相关性结果）`;
+      }
+
+      // 过滤后没结果 → 明确告知知识库不包含
+      if (highScoreResult.length === 0) {
+        observation = `ℹ️ 知识库中未找到与问题直接相关的内容，请如实告知用户，不得编造。`;
       }
     } else {
       observation = typeof rawResult === 'string' ? rawResult : JSON.stringify(rawResult, null, 2);
@@ -687,16 +755,6 @@ const reactLoop = async (
 
     let { observation, rawResult } = await executeTool(decision.tool, decision.params);
     console.log(`👁️  Observation: ${observation.substring(0, 200)}...`);
-
-    // 自动压缩 Observation 用于历史记录（复用 summarize 工具）
-    // if (observation) {
-    //   try {
-    //     const compressed = await summarizeTool.execute({ text: observation, focus: "核心发现", maxLength: 80 });
-    //     if (compressed) observation = compressed;
-    //   } catch {
-    //     observation = observation.substring(0, 100);
-    //   }
-    // }
 
     // 观察结果相似度检测：与上次 Observation 太像 → 强制结束
     if (steps.length > 0 && steps[steps.length - 1]!.observation) {

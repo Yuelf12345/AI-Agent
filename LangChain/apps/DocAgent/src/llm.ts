@@ -40,6 +40,7 @@ interface UsageRecord {
   inputTokens: number;
   outputTokens: number;
   label: string;
+  output: string;
 }
 
 class TokenTracker {
@@ -47,8 +48,8 @@ class TokenTracker {
   private sessionStart = Date.now();
 
   /** 跟踪一次 LLM 调用 */
-  track(inputTokens: number, outputTokens: number, label = "") {
-    this.records.push({ inputTokens, outputTokens, label });
+  track(inputTokens: number, outputTokens: number, label = "", output = "") {
+    this.records.push({ inputTokens, outputTokens, label, output });
   }
 
   /** 打印并写入日志文件 */
@@ -108,14 +109,25 @@ class TokenTracker {
         report,
         "",
         "  逐条明细:",
-        ...this.records.map((r, i) =>
-          `   [${i + 1}] 输入${r.inputTokens}t → 输出${r.outputTokens}t  ${r.label.slice(0, 500)}`
-        ),
+        ...this.records.map((r, i) => {
+          const outputPreview = r.output
+            ? r.output.slice(0, 600)
+                .replace(/\n/g, "\n        ")
+            : "";
+          return `   [${i + 1}] 输入${r.inputTokens}t → 输出${r.outputTokens}t  ${r.label.slice(0, 500)}${outputPreview ? `\n       ── 输出 ──\n       ${outputPreview}` : ""}`;
+        }),
       ].join("\n"), "utf-8");
 
       // 累计日志（追加）
       const cumFile = path.resolve(LOG_DIR, "cumulative.log");
-      fs.appendFileSync(cumFile, `\n${report}\n`, "utf-8");
+      const cumBody = this.records.map((r, i) => {
+        const outputPreview = r.output
+          ? r.output.slice(0, 600)
+              .replace(/\n/g, "\n        ")
+          : "";
+        return `   [${i + 1}] 输入${r.inputTokens}t → 输出${r.outputTokens}t  ${r.label.slice(0, 500)}${outputPreview ? `\n       ── 输出 ──\n       ${outputPreview}` : ""}`;
+      }).join("\n");
+      fs.appendFileSync(cumFile, `\n${report}\n${cumBody}\n`, "utf-8");
 
       console.log(`📝 日志已写入 ${sessionFile}`);
     } catch { /* 日志写入失败不影响主流程 */ }
@@ -142,7 +154,7 @@ const llm = new Proxy(rawLlm, {
         const outputTokens = estimateTokens(outputText);
         const label = params.messages?.[0]?.content?.slice(0, 500) || "";
 
-        tokenTracker.track(inputTokens, outputTokens, label);
+        tokenTracker.track(inputTokens, outputTokens, label, outputText);
 
         // 每次调用后打印（可选短格式）
         console.log(`   ⚡ LLM: 输入${inputTokens}t → 输出${outputTokens}t (${ms}ms)`);
