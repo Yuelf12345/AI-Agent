@@ -32,12 +32,19 @@ const upstreamHeaders = (h) => ({ ...h, host: `${UPSTREAM.host}:${UPSTREAM.port}
 
 const PORT = 8899; // 避开 8080（本机已被 Chrome 远程调试占用）
 const DASH_PORT = 8898; // Web 面板端口
-const LOG_DIR = path.join(import.meta.dirname, 'logs');
-fs.mkdirSync(LOG_DIR, { recursive: true });
+// 落盘目录：优先脚本所在目录；若目录被移动/改名（旧路径失效），回退到启动时的 cwd
+// 每次写入前都确保目录存在，目录搬家后无需重启代理
+const getLogDir = () => {
+  const dir = fs.existsSync(import.meta.dirname)
+    ? path.join(import.meta.dirname, 'logs')
+    : path.join(process.cwd(), 'logs');
+  fs.mkdirSync(dir, { recursive: true });
+  return dir;
+};
 
 // 序号续接：重启进程后从已有文件的最大编号继续，避免覆盖旧抓包记录
 const existingSeqs = fs
-  .readdirSync(LOG_DIR)
+  .readdirSync(getLogDir())
   .map((f) => /^(\d+)\.json$/.exec(f)?.[1])
   .filter(Boolean)
   .map(Number);
@@ -49,8 +56,10 @@ const tryParseJson = (buf) => {
   try { return JSON.parse(buf.toString()); } catch { return buf.toString(); }
 };
 // 每次调用写一个 NNN.json，面板和文件都能看
-const saveCapture = (data) =>
-  fs.writeFileSync(path.join(LOG_DIR, `${data.id}.json`), JSON.stringify(data, null, 2));
+const saveCapture = (data) => {
+  const dir = getLogDir();
+  fs.writeFileSync(path.join(dir, `${data.id}.json`), JSON.stringify(data, null, 2));
+};
 // 尽力提取 token 用量：非流式直接取 usage 字段；SSE 从事件文本里正则捞
 // （message_start 带输入 tokens，message_delta 带累计输出 tokens）
 const extractUsage = (headers, body) => {
@@ -191,9 +200,33 @@ pre { font: 12px/1.55 ui-monospace, Menlo, monospace; background: var(--panel); 
 .jsummary { color: var(--dim); font-style: italic; display: none; }
 .jline.collapsed > .jsummary { display: inline; }
 .toolbar { display: flex; gap: 6px; margin-bottom: 10px; }
+.sec-title { font-size: 12.5px; color: var(--accent); margin: 18px 0 8px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+.tool-search { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 3px 10px; font-size: 12px; outline: none; width: 200px; font-weight: normal; }
+.tool-search:focus { border-color: var(--accent); }
 .sse-item { margin-bottom: 12px; }
 .sse-tag { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 4px; margin-bottom: 4px; font-family: ui-monospace, Menlo, monospace; background: rgba(76,159,254,.12); color: var(--accent); }
 .sse-tag.quiet { background: rgba(125,136,148,.10); color: var(--dim); }
+.sse-stats { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.sse-chip { font-size: 11px; padding: 2px 10px; border-radius: 12px; cursor: pointer; border: 1px solid var(--border); background: var(--panel2); color: var(--dim); font-family: ui-monospace, Menlo, monospace; }
+.sse-chip:hover { border-color: var(--accent); color: var(--accent); }
+.sse-chip.active { color: var(--accent); border-color: var(--accent); background: rgba(76,159,254,.08); }
+.sse-card { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; background: var(--panel); overflow: hidden; }
+.sse-head { display: flex; align-items: center; gap: 8px; padding: 6px 10px; cursor: pointer; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.sse-head:hover { background: var(--panel2); }
+.sse-head .caret-mini::before { content: '▶'; color: var(--dim); font-size: 10px; }
+.sse-card.open .sse-head .caret-mini::before { content: '▼'; }
+.sse-body { display: none; padding: 2px 10px 10px; }
+.sse-card.open .sse-body { display: block; }
+.sse-sum { color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.tag { font-size: 11px; padding: 1px 8px; border-radius: 4px; font-family: ui-monospace, Menlo, monospace; white-space: nowrap; }
+.tag.blue { background: rgba(76,159,254,.12); color: var(--accent); }
+.tag.green { background: rgba(63,185,80,.12); color: var(--green); }
+.tag.purple { background: rgba(188,140,255,.12); color: var(--purple); }
+.tag.amber { background: rgba(227,179,65,.12); color: var(--amber); }
+.tag.red { background: rgba(248,81,73,.12); color: var(--red); }
+.tag.gray { background: rgba(125,136,148,.10); color: var(--dim); }
+.preview-title { font-size: 11px; color: var(--dim); margin: 10px 0 5px; }
+.preview-box { background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; font: 12px/1.6 ui-monospace, Menlo, monospace; white-space: pre-wrap; word-break: break-all; color: var(--text); max-height: 220px; overflow-y: auto; }
 .trunc { color: var(--amber); font-size: 12px; padding: 6px 0; }
 .empty { color: var(--dim); text-align: center; margin-top: 60px; line-height: 2.2; }
 ::-webkit-scrollbar { width: 8px; height: 8px; } ::-webkit-scrollbar-thumb { background: #2a3644; border-radius: 4px; }
@@ -280,24 +313,186 @@ function allTree(collapse) {
     if (el.querySelector('.jkids')) el.classList.toggle('collapsed', collapse);
   });
 }
+var EV_STYLE = {
+  message_start: 'blue', content_block_start: 'purple', content_block_delta: 'green',
+  content_block_stop: 'purple', message_delta: 'amber', message_stop: 'red', ping: 'gray', pong: 'gray'
+};
+function sseSummary(ev, pj) {
+  try {
+    if (!pj) return '';
+    if (ev === 'message_start' && pj.message) return (pj.message.model || '') + ' · in ' + ((pj.message.usage || {}).input_tokens ?? '-') + ' tok';
+    if (ev === 'content_block_start' && pj.content_block) return pj.content_block.type + (pj.content_block.name ? ' · ' + pj.content_block.name : '');
+    if (ev === 'content_block_delta' && pj.delta) {
+      if (pj.delta.type === 'text_delta') return '“' + (pj.delta.text || '').slice(0, 80) + '”';
+      if (pj.delta.type === 'thinking_delta') return 'thinking: “' + (pj.delta.thinking || '').slice(0, 60) + '”';
+      return pj.delta.type;
+    }
+    if (ev === 'message_delta' && pj.delta) return 'stop: ' + pj.delta.stop_reason + ' · out ' + ((pj.usage || {}).output_tokens ?? '-') + ' tok';
+  } catch (e) {}
+  return '';
+}
 function sseView(body) {
   var blocks = body.split(/\\n\\n/).filter(function(b) { return b.trim(); });
   if (!blocks.length) return '<pre>' + esc(trunc(body)) + '</pre>';
-  var out = '';
-  blocks.forEach(function(b, i) {
+  var evs = [];
+  blocks.forEach(function(b) {
     var ev = '', data = [];
     b.split('\\n').forEach(function(l) {
       if (l.indexOf('event:') === 0) ev = l.slice(6).trim();
       else if (l.indexOf('data:') === 0) data.push(l.slice(5).trim());
     });
-    var prettyRaw = data.join('\\n');
+    var raw = data.join('\\n');
     var pj = null;
-    try { pj = JSON.parse(prettyRaw); } catch (e) {}
-    var cls = (ev === 'ping' || ev === 'pong') ? ' quiet' : '';
-    out += '<div class="sse-item"><span class="sse-tag' + cls + '">#' + (i + 1) + ' · ' + esc(ev || 'data') + '</span>' + (pj ? treeOf(pj, false) : '<pre>' + hl(prettyRaw) + '</pre>') + '</div>';
+    try { pj = JSON.parse(raw); } catch (e) {}
+    evs.push({ ev: ev || 'data', pj: pj, raw: raw });
   });
-  return out;
+  // 类型统计（可点击筛选）
+  var counts = {};
+  evs.forEach(function(e) { counts[e.ev] = (counts[e.ev] || 0) + 1; });
+  var stats = '<div class="sse-stats"><span class="sse-chip active" data-ev="" onclick="filterEvData(this)">全部 ' + evs.length + '</span>';
+  Object.keys(counts).sort(function(a, b) { return counts[b] - counts[a]; }).forEach(function(k) {
+    stats += '<span class="sse-chip" data-ev="' + esc(k) + '" onclick="filterEvData(this)">' + esc(k) + ' × ' + counts[k] + '</span>';
+  });
+  stats += '</div>';
+  // 拼接预览：把所有 text_delta / thinking_delta 按序拼回模型的完整输出
+  var text = '', thinking = '';
+  evs.forEach(function(e) {
+    var d = e.pj && e.pj.type === 'content_block_delta' && e.pj.delta;
+    if (d && d.type === 'text_delta') text += d.text || '';
+    if (d && d.type === 'thinking_delta') thinking += d.thinking || '';
+  });
+  var previews = '';
+  if (text) previews += '<div class="preview-title">📝 拼接文本预览（' + text.length + ' 字符 · 全部 text_delta 按序拼接，即模型最终回复）</div><div class="preview-box">' + esc(text) + '</div>';
+  if (thinking) previews += '<div class="preview-title">🧠 思考预览（' + thinking.length + ' 字符）</div><div class="preview-box">' + esc(thinking) + '</div>';
+  // 事件卡片：默认折叠，点击展开完整 JSON 树
+  var cards = evs.map(function(e, i) {
+    var st = EV_STYLE[e.ev] || 'gray';
+    return '<div class="sse-card" data-ev="' + esc(e.ev) + '">'
+      + '<div class="sse-head" onclick="tgCard(this)">'
+      + '<span class="caret-mini"></span>'
+      + '<span class="tag ' + st + '">#' + (i + 1) + ' ' + esc(e.ev) + '</span>'
+      + '<span class="sse-sum">' + esc(sseSummary(e.ev, e.pj)) + '</span></div>'
+      + '<div class="sse-body">' + (e.pj ? treeOf(e.pj, false) : '<pre>' + hl(e.raw) + '</pre>') + '</div></div>';
+  }).join('');
+  return previews + stats + cards;
 }
+function filterEv(ev, el) {
+  document.querySelectorAll('#content .sse-chip').forEach(function(c) { c.classList.remove('active'); });
+  el.classList.add('active');
+  document.querySelectorAll('#content .sse-card').forEach(function(card) {
+    card.style.display = (!ev || card.getAttribute('data-ev') === ev) ? '' : 'none';
+  });
+}
+function filterEvData(el) { filterEv(el.getAttribute('data-ev') || '', el); }
+function tgCard(el) { el.closest('.sse-card').classList.toggle('open'); }
+// ---------- 请求体结构化视图 ----------
+function cardOf(tagCls, tagText, sum, bodyHtml) {
+  return '<div class="sse-card"><div class="sse-head" onclick="tgCard(this)">'
+    + '<span class="caret-mini"></span><span class="tag ' + tagCls + '">' + esc(tagText) + '</span>'
+    + '<span class="sse-sum">' + esc(sum) + '</span></div>'
+    + '<div class="sse-body">' + bodyHtml + '</div></div>';
+}
+function textOf(bl) {
+  if (bl.type === 'text') return bl.text || '';
+  if (bl.type === 'tool_result') {
+    if (typeof bl.content === 'string') return bl.content;
+    if (Array.isArray(bl.content)) return bl.content.map(function(x) { return x.text || ''; }).join('');
+  }
+  return '';
+}
+function blockSum(bl) {
+  if (bl.type === 'text') return (bl.text || '').slice(0, 100);
+  if (bl.type === 'tool_use') return bl.name + ' ' + JSON.stringify(bl.input || {}).slice(0, 90);
+  if (bl.type === 'tool_result') return textOf(bl).slice(0, 100);
+  if (bl.type === 'thinking') return (bl.thinking || '').slice(0, 90);
+  return bl.type || '';
+}
+function contentSummary(m) {
+  var c = m.content;
+  if (typeof c === 'string') return c.slice(0, 120);
+  if (Array.isArray(c)) return c.map(function(b) {
+    if (b.type === 'text') return (b.text || '').slice(0, 40);
+    if (b.type === 'tool_use') return '调用 ' + b.name;
+    return b.type;
+  }).join(' | ').slice(0, 130);
+  return '';
+}
+function reqBodyView(b) {
+  var html = '';
+  // 顶层概览
+  var chips = [];
+  function chip(k, v) { if (v !== undefined && v !== null && v !== '') chips.push('<span class="chip">' + k + ' <b>' + esc(String(v)) + '</b></span>'); }
+  chip('模型', b.model); chip('max_tokens', b.max_tokens); chip('stream', b.stream);
+  if (b.thinking) chip('thinking', (b.thinking.type || '') + (b.thinking.budget_tokens ? ' · budget ' + b.thinking.budget_tokens : ''));
+  if (b.tools) chip('tools', b.tools.length + ' 个');
+  if (b.messages) chip('messages', b.messages.length + ' 条');
+  if (b.system) chip('system', (Array.isArray(b.system) ? b.system.length : 1) + ' 块');
+  html += '<div class="sse-stats">' + chips.join('') + '</div>';
+  // system 区
+  if (b.system) {
+    var sysArr = Array.isArray(b.system) ? b.system : [b.system];
+    html += '<div class="sec-title">🧩 system（' + sysArr.length + ' 块）</div>';
+    html += sysArr.map(function(s, i) {
+      var t = s.text || JSON.stringify(s);
+      return cardOf('purple', '块 ' + (i + 1), t.slice(0, 130),
+        '<div class="preview-box">' + esc(trunc(t)) + '</div>'
+        + (s.cache_control ? '<div class="meta-chip">cache_control: <b>' + esc(s.cache_control.type) + '</b></div>' : ''));
+    }).join('');
+  }
+  // messages 区
+  if (b.messages) {
+    html += '<div class="sec-title">💬 messages（' + b.messages.length + ' 条）</div>';
+    html += b.messages.map(function(m, i) {
+      var bodyHtml;
+      if (typeof m.content === 'string') {
+        bodyHtml = '<div class="preview-box">' + esc(trunc(m.content)) + '</div>';
+      } else if (Array.isArray(m.content)) {
+        bodyHtml = m.content.map(function(bl, j) {
+          var t = bl.type || 'block';
+          var cls = t === 'text' ? 'green' : t === 'tool_use' ? 'blue' : t === 'tool_result' ? 'amber' : t === 'thinking' ? 'purple' : 'gray';
+          var inner = (t === 'text' || t === 'tool_result' || t === 'thinking')
+            ? '<div class="preview-box">' + esc(trunc(textOf(bl) || blockSum(bl))) + '</div>'
+            : treeOf(bl, false);
+          return cardOf(cls, '#' + (j + 1) + ' ' + t, blockSum(bl), inner);
+        }).join('');
+      } else bodyHtml = treeOf(m.content, false);
+      return cardOf(m.role === 'user' ? 'green' : 'blue', '#' + (i + 1) + ' ' + m.role, contentSummary(m), bodyHtml);
+    }).join('');
+  }
+  // tools 区（带名称过滤）
+  if (b.tools) {
+    html += '<div class="sec-title">🛠 tools（' + b.tools.length + ' 个）'
+      + '<input class="tool-search" placeholder="按名称过滤…" oninput="filterTools(this.value)"></div>';
+    html += '<div id="toolList">' + b.tools.map(function(t, i) {
+      return '<div class="tool-card" data-name="' + esc((t.name || '').toLowerCase()) + '">'
+        + cardOf('blue', t.name || ('tool ' + (i + 1)), (t.description || '').slice(0, 120), treeOf(t, false)) + '</div>';
+    }).join('') + '</div>';
+  }
+  // 其它顶层参数
+  var rest = {};
+  Object.keys(b).forEach(function(k) { if (['model', 'messages', 'system', 'tools'].indexOf(k) < 0) rest[k] = b[k]; });
+  if (Object.keys(rest).length) html += '<div class="sec-title">⚙️ 其它参数</div>' + treeOf(rest, false);
+  return html;
+}
+function filterTools(q) {
+  q = (q || '').toLowerCase();
+  document.querySelectorAll('#toolList .tool-card').forEach(function(el) {
+    el.style.display = (!q || el.getAttribute('data-name').indexOf(q) >= 0) ? '' : 'none';
+  });
+}
+function renderReqBody() {
+  var el = $('content');
+  var mode = window._reqView || 'tree'; // 默认保留原始 JSON 结构
+  var bar = '<div class="toolbar">'
+    + '<button class="btn' + (mode === 'tree' ? ' on' : '') + '" onclick="setReqView(\\'tree\\')">原始 JSON</button>'
+    + '<button class="btn' + (mode === 'struct' ? ' on' : '') + '" onclick="setReqView(\\'struct\\')">结构视图</button>'
+    + (mode === 'tree' && window._reqTree ? '<button class="btn" onclick="allTree(false)">展开全部</button><button class="btn" onclick="allTree(true)">折叠全部</button>' : '')
+    + '</div>';
+  el.innerHTML = bar + (mode === 'struct' && window._reqTree
+    ? reqBodyView(window._reqTree)
+    : (window._reqTree ? treeOf(window._reqTree, false) : '<pre>' + hl(RAW.reqBody) + '</pre>'));
+}
+function setReqView(v) { window._reqView = v; renderReqBody(); }
 function updateStats() {
   var ok = 0, err = 0, tin = 0, tout = 0, hasTok = false;
   all.forEach(function(c) {
@@ -398,7 +593,7 @@ function setTab(t) {
     var b = $('t-' + k); if (b) b.className = (k === t ? 'active' : '');
   });
   var el = $('content');
-  if (t === 'reqBody') el.innerHTML = window._reqTree ? treeOf(window._reqTree, true) : '<pre>' + hl(RAW.reqBody) + '</pre>';
+  if (t === 'reqBody') { renderReqBody(); return; }
   else if (t === 'reqHead') el.innerHTML = treeOf(window._reqHeadTree, true);
   else if (t === 'respHead') el.innerHTML = treeOf(window._respHeadTree, true);
   else el.innerHTML = window._isSSE ? sseView(RAW.respBody) : (window._respTree ? treeOf(window._respTree, true) : '<pre>' + hl(RAW.respBody) + '</pre>');
@@ -449,19 +644,21 @@ const dash = http.createServer((req, res) => {
   if (url.pathname === '/') {
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }).end(HTML);
   } else if (url.pathname === '/api/list') {
-    const list = fs.readdirSync(LOG_DIR).filter((f) => f.endsWith('.json')).sort()
+    const logDir = getLogDir();
+    const list = fs.readdirSync(logDir).filter((f) => f.endsWith('.json')).sort()
       .map((f) => {
-        try { return JSON.parse(fs.readFileSync(path.join(LOG_DIR, f), 'utf8')); } catch { return null; }
+        try { return JSON.parse(fs.readFileSync(path.join(logDir, f), 'utf8')); } catch { return null; }
       })
       .filter(Boolean)
       .map(({ id, time, method, path: p, status, model, duration, usage }) => ({ id, time, method, path: p, status, model, duration, usage }));
     res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(list));
   } else if (url.pathname === '/api/clear') {
-    for (const f of fs.readdirSync(LOG_DIR)) fs.unlinkSync(path.join(LOG_DIR, f));
+    const logDir = getLogDir();
+    for (const f of fs.readdirSync(logDir)) fs.unlinkSync(path.join(logDir, f));
     seq = 0;
     res.writeHead(200, { 'content-type': 'application/json' }).end('{"ok":true}');
   } else if (url.pathname.match(/^\/api\/capture\/\d+$/)) {
-    const file = path.join(LOG_DIR, url.pathname.split('/').pop() + '.json');
+    const file = path.join(getLogDir(), url.pathname.split('/').pop() + '.json');
     res.writeHead(200, { 'content-type': 'application/json' })
       .end(fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '{}');
   } else {
@@ -478,6 +675,6 @@ server.listen(PORT, '127.0.0.1', () => {
     console.log(`抓包:   http://127.0.0.1:${PORT}  ← claude 的 ANTHROPIC_BASE_URL 指向这里（仅 start.sh 启动的会话）`);
     console.log(`上游:   ${UPSTREAM.lib}://${UPSTREAM.host}:${UPSTREAM.port} (mode=${UPSTREAM_MODE})`);
     console.log(`面板:   http://127.0.0.1:${DASH_PORT}  ← 浏览器打开这个`);
-    console.log(`落盘:   ${LOG_DIR}`);
+    console.log(`落盘:   ${getLogDir()}`);
   });
 });
