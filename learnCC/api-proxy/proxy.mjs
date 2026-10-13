@@ -225,7 +225,15 @@ pre { font: 12px/1.55 ui-monospace, Menlo, monospace; background: var(--panel); 
 .tag.amber { background: rgba(227,179,65,.12); color: var(--amber); }
 .tag.red { background: rgba(248,81,73,.12); color: var(--red); }
 .tag.gray { background: rgba(125,136,148,.10); color: var(--dim); }
-.preview-title { font-size: 11px; color: var(--dim); margin: 10px 0 5px; }
+.preview-title { font-size: 11px; color: var(--dim); margin: 10px 0 5px; display: flex; align-items: center; gap: 6px; }
+.copy-ic { margin-left: auto; color: var(--dim); cursor: pointer; font-size: 13px; padding: 1px 7px; border-radius: 4px; user-select: none; flex-shrink: 0; line-height: 1.4; }
+.copy-ic:hover { color: var(--accent); background: rgba(76,159,254,.10); }
+.copy-ic.ok { color: var(--green); }
+.preview-title .copy-ic { margin-left: auto; }
+.learn-tools { padding: 10px 16px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+.learn-tools input { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 6px 10px; font-size: 12px; outline: none; }
+.learn-tools input:focus { border-color: var(--accent); }
+.lang-label { font-size: 10px; color: var(--dim); margin: 10px 0 3px; letter-spacing: 1px; }
 .preview-box { background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; font: 12px/1.6 ui-monospace, Menlo, monospace; white-space: pre-wrap; word-break: break-all; color: var(--text); max-height: 220px; overflow-y: auto; }
 .trunc { color: var(--amber); font-size: 12px; padding: 6px 0; }
 .empty { color: var(--dim); text-align: center; margin-top: 60px; line-height: 2.2; }
@@ -234,16 +242,17 @@ pre { font: 12px/1.55 ui-monospace, Menlo, monospace; background: var(--panel); 
 <body>
 <header>
   <span class="logo">🛰 API 抓包面板</span>
-  <span class="chip">总请求 <b id="stTotal">0</b></span>
+  <span id="statChips"><span class="chip">总请求 <b id="stTotal">0</b></span>
   <span class="chip ok">成功 <b id="stOk">0</b></span>
   <span class="chip err">错误 <b id="stErr">0</b></span>
-  <span class="chip tok">Tokens ↓<b id="stIn">0</b> ↑<b id="stOut">0</b></span>
+  <span class="chip tok">Tokens ↓<b id="stIn">0</b> ↑<b id="stOut">0</b></span></span>
   <span class="spacer"></span>
-  <button class="btn on" id="autoBtn" onclick="toggleAuto()">自动刷新:开</button>
+  <button class="btn" id="viewBtn" onclick="toggleView()">📚 学习</button>
+  <span id="captureCtrls"><button class="btn on" id="autoBtn" onclick="toggleAuto()">自动刷新:开</button>
   <button class="btn" onclick="refreshList()">刷新</button>
-  <button class="btn danger" onclick="clearAll()">清空记录</button>
+  <button class="btn danger" onclick="clearAll()">清空记录</button></span>
 </header>
-<main>
+<main id="captureMain">
   <div id="side">
     <div class="filters">
       <input id="q" placeholder="搜索 路径 / 模型 / 状态码 / #编号…" oninput="renderList()">
@@ -260,6 +269,14 @@ pre { font: 12px/1.55 ui-monospace, Menlo, monospace; background: var(--panel); 
   </div>
   <div id="detail"><div class="empty">← 点击左侧任意一条记录查看详情<br>支持 ↑ ↓ 键快速切换 · 面板每 2 秒自动刷新</div></div>
 </main>
+<main id="learnMain" style="display:none;flex-direction:column;">
+  <div class="learn-tools">
+    <input id="lq" placeholder="搜索 提示词原文 / 中文翻译 / 标题…" oninput="renderPrompts()">
+    <div id="catChips" class="sse-stats" style="margin-bottom:0;"></div>
+  </div>
+  <div id="promptList" style="flex:1;overflow-y:auto;padding:14px 16px;"><div class="empty">加载中…</div></div>
+</main>
+<script src="/learn-data.js"></script>
 <script>
 var all = [], selected = null, auto = true, tab = 'reqBody', cur = null;
 var RAW = {};
@@ -362,8 +379,8 @@ function sseView(body) {
     if (d && d.type === 'thinking_delta') thinking += d.thinking || '';
   });
   var previews = '';
-  if (text) previews += '<div class="preview-title">📝 拼接文本预览（' + text.length + ' 字符 · 全部 text_delta 按序拼接，即模型最终回复）</div><div class="preview-box">' + esc(text) + '</div>';
-  if (thinking) previews += '<div class="preview-title">🧠 思考预览（' + thinking.length + ' 字符）</div><div class="preview-box">' + esc(thinking) + '</div>';
+  if (text) previews += '<div class="preview-title">📝 拼接文本预览（' + text.length + ' 字符 · 全部 text_delta 按序拼接，即模型最终回复）<span class="copy-ic" title="复制" onclick="copyReg(event, ' + regCopy(text) + ', this)">⧉</span></div><div class="preview-box">' + esc(text) + '</div>';
+  if (thinking) previews += '<div class="preview-title">🧠 思考预览（' + thinking.length + ' 字符）<span class="copy-ic" title="复制" onclick="copyReg(event, ' + regCopy(thinking) + ', this)">⧉</span></div><div class="preview-box">' + esc(thinking) + '</div>';
   // 事件卡片：默认折叠，点击展开完整 JSON 树
   var cards = evs.map(function(e, i) {
     var st = EV_STYLE[e.ev] || 'gray';
@@ -371,7 +388,8 @@ function sseView(body) {
       + '<div class="sse-head" onclick="tgCard(this)">'
       + '<span class="caret-mini"></span>'
       + '<span class="tag ' + st + '">#' + (i + 1) + ' ' + esc(e.ev) + '</span>'
-      + '<span class="sse-sum">' + esc(sseSummary(e.ev, e.pj)) + '</span></div>'
+      + '<span class="sse-sum">' + esc(sseSummary(e.ev, e.pj)) + '</span>'
+      + '<span class="copy-ic" title="复制事件 JSON" onclick="copyReg(event, ' + regCopy(e.pj ? JSON.stringify(e.pj, null, 2) : e.raw) + ', this)">⧉</span></div>'
       + '<div class="sse-body">' + (e.pj ? treeOf(e.pj, false) : '<pre>' + hl(e.raw) + '</pre>') + '</div></div>';
   }).join('');
   return previews + stats + cards;
@@ -386,10 +404,32 @@ function filterEv(ev, el) {
 function filterEvData(el) { filterEv(el.getAttribute('data-ev') || '', el); }
 function tgCard(el) { el.closest('.sse-card').classList.toggle('open'); }
 // ---------- 请求体结构化视图 ----------
-function cardOf(tagCls, tagText, sum, bodyHtml) {
+var COPYREG = [];
+function regCopy(txt) { COPYREG.push(txt == null ? '' : String(txt)); return COPYREG.length - 1; }
+function fallbackCopy(txt) {
+  var ta = document.createElement('textarea');
+  ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); } catch (e) {}
+  document.body.removeChild(ta);
+}
+function copyReg(ev, idx, el) {
+  ev.stopPropagation(); // 防止触发卡片折叠
+  var txt = COPYREG[idx] || '';
+  var done = function() {
+    if (!el) return;
+    el.textContent = '✓'; el.classList.add('ok');
+    setTimeout(function() { el.textContent = '⧉'; el.classList.remove('ok'); }, 1200);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).then(done, function() { fallbackCopy(txt); done(); });
+  } else { fallbackCopy(txt); done(); }
+}
+function cardOf(tagCls, tagText, sum, bodyHtml, copyText) {
+  var ic = copyText != null ? '<span class="copy-ic" title="复制" onclick="copyReg(event, ' + regCopy(copyText) + ', this)">⧉</span>' : '';
   return '<div class="sse-card"><div class="sse-head" onclick="tgCard(this)">'
     + '<span class="caret-mini"></span><span class="tag ' + tagCls + '">' + esc(tagText) + '</span>'
-    + '<span class="sse-sum">' + esc(sum) + '</span></div>'
+    + '<span class="sse-sum">' + esc(sum) + '</span>' + ic + '</div>'
     + '<div class="sse-body">' + bodyHtml + '</div></div>';
 }
 function textOf(bl) {
@@ -436,7 +476,7 @@ function reqBodyView(b) {
       var t = s.text || JSON.stringify(s);
       return cardOf('purple', '块 ' + (i + 1), t.slice(0, 130),
         '<div class="preview-box">' + esc(trunc(t)) + '</div>'
-        + (s.cache_control ? '<div class="meta-chip">cache_control: <b>' + esc(s.cache_control.type) + '</b></div>' : ''));
+        + (s.cache_control ? '<div class="meta-chip">cache_control: <b>' + esc(s.cache_control.type) + '</b></div>' : ''), t);
     }).join('');
   }
   // messages 区
@@ -453,10 +493,10 @@ function reqBodyView(b) {
           var inner = (t === 'text' || t === 'tool_result' || t === 'thinking')
             ? '<div class="preview-box">' + esc(trunc(textOf(bl) || blockSum(bl))) + '</div>'
             : treeOf(bl, false);
-          return cardOf(cls, '#' + (j + 1) + ' ' + t, blockSum(bl), inner);
+          return cardOf(cls, '#' + (j + 1) + ' ' + t, blockSum(bl), inner, JSON.stringify(bl, null, 2));
         }).join('');
       } else bodyHtml = treeOf(m.content, false);
-      return cardOf(m.role === 'user' ? 'green' : 'blue', '#' + (i + 1) + ' ' + m.role, contentSummary(m), bodyHtml);
+      return cardOf(m.role === 'user' ? 'green' : 'blue', '#' + (i + 1) + ' ' + m.role, contentSummary(m), bodyHtml, JSON.stringify(m, null, 2));
     }).join('');
   }
   // tools 区（带名称过滤）
@@ -465,7 +505,7 @@ function reqBodyView(b) {
       + '<input class="tool-search" placeholder="按名称过滤…" oninput="filterTools(this.value)"></div>';
     html += '<div id="toolList">' + b.tools.map(function(t, i) {
       return '<div class="tool-card" data-name="' + esc((t.name || '').toLowerCase()) + '">'
-        + cardOf('blue', t.name || ('tool ' + (i + 1)), (t.description || '').slice(0, 120), treeOf(t, false)) + '</div>';
+        + cardOf('blue', t.name || ('tool ' + (i + 1)), (t.description || '').slice(0, 120), treeOf(t, false), JSON.stringify(t, null, 2)) + '</div>';
     }).join('') + '</div>';
   }
   // 其它顶层参数
@@ -558,6 +598,7 @@ function pick(id) {
   selected = id; renderList();
   fetch('/api/capture/' + id).then(function(r) { return r.json(); }).then(function(c) {
     cur = c;
+    COPYREG.length = 0; // 切换记录时重置复制注册表
     RAW.reqBody = typeof c.requestBody === 'string' ? c.requestBody : JSON.stringify(c.requestBody, null, 2);
     RAW.reqHead = JSON.stringify(c.requestHeaders, null, 2);
     RAW.respBody = c.responseBody;
@@ -626,6 +667,51 @@ function clearAll() {
     $('detail').innerHTML = '<div class="empty">已清空</div>';
   });
 }
+// ---------- 学习视图（prompt 分类库）----------
+var curView = 'capture';
+var LEARN_CATS = ['身份与角色', '系统行为', '编码纪律', '行动安全', '工具使用', '语气与效率', '自主模式', '上下文维护'];
+function toggleView() { showView(curView === 'capture' ? 'learn' : 'capture'); }
+function showView(v) {
+  curView = v;
+  $('captureMain').style.display = v === 'capture' ? 'flex' : 'none';
+  $('learnMain').style.display = v === 'learn' ? 'flex' : 'none';
+  $('viewBtn').textContent = v === 'capture' ? '📚 学习' : '🛰 返回抓包';
+  $('viewBtn').classList.toggle('on', v === 'learn');
+  $('captureCtrls').style.display = v === 'capture' ? '' : 'none';
+  $('statChips').style.display = v === 'capture' ? '' : 'none';
+  if (v === 'learn') renderPrompts();
+}
+function renderPrompts() {
+  var lib = window.PROMPT_LIBRARY || [];
+  var q = $('lq') ? $('lq').value.toLowerCase() : '';
+  var cat = window._learnCat || '';
+  var rows = lib.filter(function(p) {
+    if (cat && p.cat !== cat) return false;
+    if (q && (p.title + ' ' + p.en + ' ' + p.zh).toLowerCase().indexOf(q) < 0) return false;
+    return true;
+  });
+    var chips = '<span class=\"sse-chip' + (!cat ? ' active' : '') + '\" data-cat=\"\" onclick=\"setLearnCatData(this)\">全部 ' + rows.length + '</span>';
+  LEARN_CATS.forEach(function(c) {
+    var n = lib.filter(function(p) { return p.cat === c; }).length;
+    if (!n) return;
+        chips += '<span class=\"sse-chip' + (cat === c ? ' active' : '') + '\" data-cat=\"' + esc(c) + '\" onclick=\"setLearnCatData(this)\">' + esc(c) + ' × ' + n + '</span>';
+  });
+  $('catChips').innerHTML = chips;
+  var html = '';
+  LEARN_CATS.forEach(function(c) {
+    var items = rows.filter(function(p) { return p.cat === c; });
+    if (!items.length) return;
+    html += '<div class="sec-title">📚 ' + esc(c) + '（' + items.length + '）</div>';
+    html += items.map(function(p) {
+      return cardOf('blue', p.title, p.cat,
+        '<div class="lang-label">EN 原文</div><pre>' + esc(p.en) + '</pre>'
+        + '<div class="lang-label">译</div><div class="preview-box">' + esc(p.zh) + '</div>',
+        p.en);
+    }).join('');
+  });
+  $('promptList').innerHTML = rows.length ? html : '<div class="empty">没有匹配的条目</div>';
+}
+function setLearnCatData(el) { window._learnCat = el.getAttribute('data-cat') || ''; renderPrompts(); }
 document.onkeydown = function(e) {
   if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
   var rows = all.slice().reverse();
@@ -635,7 +721,7 @@ document.onkeydown = function(e) {
   if (idx >= 0) pick(rows[idx].id);
   e.preventDefault();
 };
-setInterval(function() { if (auto) refreshList(); }, 2000);
+setInterval(function() { if (auto && curView === 'capture') refreshList(); }, 2000);
 refreshList();
 </script></body></html>`;
 
@@ -657,6 +743,9 @@ const dash = http.createServer((req, res) => {
     for (const f of fs.readdirSync(logDir)) fs.unlinkSync(path.join(logDir, f));
     seq = 0;
     res.writeHead(200, { 'content-type': 'application/json' }).end('{"ok":true}');
+  } else if (url.pathname === '/learn-data.js') {
+    res.writeHead(200, { 'content-type': 'text/javascript; charset=utf-8' })
+      .end(fs.readFileSync(path.join(import.meta.dirname, 'learn-data.js'), 'utf8'));
   } else if (url.pathname.match(/^\/api\/capture\/\d+$/)) {
     const file = path.join(getLogDir(), url.pathname.split('/').pop() + '.json');
     res.writeHead(200, { 'content-type': 'application/json' })
