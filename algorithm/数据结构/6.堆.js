@@ -129,7 +129,7 @@ function topKHeap(nums, k){
         let i = heap.length - 1
         while(i){
             const p = getParent(i)
-            if(!p || heap[i] > heap[p]) break
+            if(heap[i] >= heap[p]) break
             [heap[i], heap[p]] = [heap[p], heap[i]]
             i = p
         }
@@ -159,6 +159,6 @@ function topKHeap(nums, k){
             minSiftDown(minHeap, 0) 
         }
     }
-    return minHeap
+    return minHeap[0]
 }
-console.log(topKHeap([1,7,6,3,2], 3));
+console.log(topKHeap([2,1], 2));
