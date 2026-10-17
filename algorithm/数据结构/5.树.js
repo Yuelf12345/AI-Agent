@@ -32,9 +32,9 @@ function BFS(root) {
     const res = []
     while (queue.length) {
         const node = queue.shift()
-        res.push(node.val)
         if (node.left) queue.push(node.left)
         if (node.right) queue.push(node.right)
+        res.push(node.val)
     }
     return res
 }
@@ -135,28 +135,28 @@ t6.left = t5
 function search(tree, num) {
     let node = tree
     while (node) {
-       if(node.val === num) return node
-       if(node.val < num) node = node.right
-       else if(node.val > num) node = node.left
+        if (node.val === num) return node
+        if (node.val < num) node = node.right
+        else if (node.val > num) node = node.left
     }
     return null
 }
 console.log(search(t4, 3));
 
 
-function insert(tree, num){
-    if(!tree) return new TreeNode(num)
+function insert(tree, num) {
+    if (!tree) return new TreeNode(num)
     let node = tree
     let pre = null
-    while(node){
-        if(node.val === num) return
+    while (node) {
+        if (node.val === num) return
         pre = node
-        if(node.val < num) node = node.right
+        if (node.val < num) node = node.right
         else node = node.left
     }
     const newNode = new TreeNode(num)
-    if(pre.val > num) pre.left = newNode
-    if(pre.val < num) pre.right = newNode
+    if (pre.val > num) pre.left = newNode
+    if (pre.val < num) pre.right = newNode
 }
 // insert(t4,8)
 // insert(t4,7)
@@ -169,26 +169,26 @@ function insert(tree, num){
     第二种, 删除节点只有左或右子树，则用左或右子树代替
     第三种，删除节点有左右子树，则用右子树最小值（或左子树最大值）代替
  */
-function del(tree, num){
-    if(!tree) return
+function del(tree, num) {
+    if (!tree) return
     let cur = tree // 当前节点
     let pre = null // 父节点
     // 找到当前节点
-    while(cur) {
-        if(cur.val === num) break
+    while (cur) {
+        if (cur.val === num) break
         pre = cur
-        if(cur.val < num) cur = cur.right
+        if (cur.val < num) cur = cur.right
         else cur = cur.left
     }
     if (cur === null) return;
     // 第一、二种情况
-    if(!cur.left || !cur.right){
-       const child = cur.left || cur.right
-        if(cur !== tree){
+    if (!cur.left || !cur.right) {
+        const child = cur.left || cur.right
+        if (cur !== tree) {
             // 如果是删的父左节点,挂左边
-            if(pre.left === cur) pre.left = child
+            if (pre.left === cur) pre.left = child
             else pre.right = child
-        }else{
+        } else {
             tree = child
         }
     }
@@ -196,7 +196,7 @@ function del(tree, num){
     else {
         // 递归找到右节点的最小值
         const temp = cur.right
-        while(temp.left){
+        while (temp.left) {
             temp = temp.left
         }
         // 将temp移动到当前删除的节点处
@@ -225,13 +225,13 @@ function updateHeight(node) {
 
 // 递归把整棵树的高度刷成真实值
 function refreshAll(node) {
-  if (!node) return -1
-  node.height = Math.max(refreshAll(node.left), refreshAll(node.right)) + 1
-  return node.height
+    if (!node) return -1
+    node.height = Math.max(refreshAll(node.left), refreshAll(node.right)) + 1
+    return node.height
 }
 
 // 右旋转
-function rightRotate(node){
+function rightRotate(node) {
     const child = node.left
     const grandChild = child.right
     child.right = node
@@ -243,7 +243,7 @@ function rightRotate(node){
 }
 
 // 左旋转（和右旋完全对称）
-function leftRotate(node){
+function leftRotate(node) {
     const child = node.right
     const grandChild = child.left
     child.left = node
@@ -265,11 +265,11 @@ a4.left = a3
 a3.left = a0
 // a4.right = a5
 refreshAll(a4);
-console.log('AVL',a4);
+console.log('AVL', a4);
 const res = rightRotate(a4)
-console.log('right',res);
+console.log('right', res);
 
 /* 执行旋转操作，使该子树重新恢复平衡 */
 function rotate(node) {
-    
+
 }
