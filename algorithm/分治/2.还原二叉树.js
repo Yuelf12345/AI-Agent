@@ -58,7 +58,7 @@ function buildTreeLoop(preorder, inorder) {
     const root = new TreeNode(preorder[0])
     stack.push(root)
     for (let i = 1; i < preorder.length; i++) {
-        const inorderVal = inorderMap.get(preorder[i]) // 当前节点在中序遍历的索引
+        const currIndex = inorderMap.get(preorder[i]) // 当前节点在中序遍历的索引
         let node = stack[stack.length - 1];  // 栈顶节点
         let topIndex = inorderMap.get(node.val) // 栈顶节点在中序遍历的索引
         /**
@@ -66,7 +66,7 @@ function buildTreeLoop(preorder, inorder) {
          * 因为中序遍历里 左<根<右
          * 当前 < 栈顶 说明当前节点是左节点
          */
-        if (inorderVal < topIndex) { 
+        if (currIndex < topIndex) { 
             node.left = new TreeNode(preorder[i])
             stack.push(node.left)
         } else {
