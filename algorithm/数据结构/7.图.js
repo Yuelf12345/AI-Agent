@@ -223,7 +223,7 @@ function graphDFS(graph, startVet) {
     dfs(startVet)
     return res
 }
-function graphDFS(graph, startVet) {
+function graphDFSLoop(graph, startVet) {
     let queue = [startVet]
     let res = []
     while (queue.length) {
