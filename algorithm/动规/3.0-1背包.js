@@ -27,11 +27,21 @@ function knapsack(capacity, weights, values) {
  * 2  0 0 3 5 5 7
  */
 
+// 一维压缩版：dp[j] 表示在当前已经处理的物品中，容量不超过 j 时的最大价值
 function knapsack1D(capacity, weights, values) {
+    // 初始没有放入任何物品，所有容量下的最大价值都是 0
     const dp = Array(capacity + 1).fill(0)
+
+    // 依次处理每个物品，每个物品只能选择一次
     for(let i = 0;i < weights.length;i++){
         const w = weights[i], v = values[i]
+
+        // 0-1 背包必须从大到小更新容量
+        // 这样 dp[j-w] 还没有被当前物品更新，仍然是处理当前物品前的旧状态
+        // 因此 dp[j-w] + v 表示：不重复使用当前物品的情况下，再放入当前物品
         for(let j = capacity;j >= w;j--){
+            // 不选当前物品：保留原来的 dp[j]
+            // 选当前物品：使用容量 j-w 的旧状态，加上当前物品价值 v
             dp[j] = Math.max(dp[j],dp[j-w]+v)
         }
     }

@@ -56,7 +56,7 @@ function coinChange(coins, amount) {
     }
     return dp[coins.length][amount] === Infinity ? -1 : dp[coins.length][amount]
 }
-console.log(coinChange([1, 3, 5], 9)) // 5+3+1
+// console.log(coinChange([1, 3, 5], 9)) // 5+3+1
 
 function coinChange1D(coins, amount) {
     const dp = Array(amount + 1).fill(Infinity)
@@ -69,11 +69,37 @@ function coinChange1D(coins, amount) {
     }
     return dp[amount] === Infinity ? -1 : dp[amount]
 }
-console.log(coinChange1D([1, 3, 5], 9)) // 5+3+1
+// console.log(coinChange1D([1, 3, 5], 9)) // 5+3+1
 
 /** 
  * 硬币组合数量
  */
 function coinChangeCount(coins, amount) {
-    
+    const dp = Array(coins.length + 1).fill(0).map(() => Array(amount + 1).fill(0))
+    // 初始化首列
+    for (let i = 0; i <= coins.length; i++)dp[i][0] = 1
+    for (let i = 1; i <= coins.length; i++) {
+        for (let j = 0; j <= amount; j++) {
+            if (coins[i - 1] > j) {
+                dp[i][j] = dp[i - 1][j]
+            } else {
+                dp[i][j] = dp[i - 1][j] + dp[i][j - coins[i - 1]]
+            }
+        }
+    }
+    return dp[coins.length][amount]
 }
+// console.log(coinChangeCount([1, 3, 5], 9))
+
+function coinChangeCount1D(coins, amount) {
+    const dp = Array(amount + 1).fill(0)
+    dp[0] = 1
+    for (let i = 1; i <= coins.length; i++) {
+        const coin = coins[i - 1]
+        for (let j = coin; j <= amount; j++) {
+            dp[j] = dp[j] +  dp[j - coin]
+        }
+    }
+    return dp[amount]
+}
+console.log(coinChangeCount1D([1, 3, 5], 9))
