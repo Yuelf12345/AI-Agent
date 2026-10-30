@@ -1,0 +1,2278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生日仪式</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            overflow-y: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .final-input::-webkit-scrollbar { display: none; }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #0b1220;
+        }
+
+        /* ========== 场景层 ========== */
+        .stage {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+        }
+
+        /* 背景1：暗色氛围场景（拉伸铺满，无裁剪无留白） */
+        .bg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: fill;
+        }
+
+        /* 暗角 + 顶部压暗，保证文字可读 */
+        .vignette {
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 120% 70% at 50% 88%, rgba(255,170,60,0.10) 0%, rgba(0,0,0,0) 55%),
+                linear-gradient(to bottom, rgba(4,8,18,0.55) 0%, rgba(4,8,18,0.15) 32%, rgba(4,8,18,0) 55%, rgba(2,5,12,0.45) 100%);
+        }
+
+        /* ========== 照片墙：环形轮播（JS 驱动，按景深定位） ========== */
+        .photo-ring {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .ring-card {
+            position: absolute;
+            left: 0;
+            top: 0;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid rgba(255,218,160,0.55);
+            aspect-ratio: 3 / 2;
+            backface-visibility: hidden;
+            box-shadow:
+                0 0 8px rgba(255,195,110,0.38),
+                0 0 16px rgba(255,180,90,0.16);
+            will-change: transform, opacity;
+        }
+
+        .ring-card::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(255,200,120,0.10) 0%, rgba(0,0,0,0.08) 100%);
+            pointer-events: none;
+        }
+
+        .ring-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* 第一步轮播卡片：可点击放大查看 */
+        .photo-ring .ring-card {
+            pointer-events: auto;
+            cursor: zoom-in;
+        }
+
+        /* 进入后续阶段后轮播已隐藏，同步取消点击，避免透明卡片拦截交互 */
+        body.wish .photo-ring .ring-card,
+        body.blow .photo-ring .ring-card,
+        body.mem .photo-ring .ring-card,
+        body.final .photo-ring .ring-card {
+            pointer-events: none;
+        }
+
+        /* ========== 蛋糕 + 蜡烛 ========== */
+        .cake-wrap {
+            position: absolute;
+            left: 50%;
+            bottom: 14%;
+            transform: translateX(-50%);
+            width: 40vw;
+            z-index: 2;
+            filter: drop-shadow(0 30px 60px rgba(0,0,0,0.55));
+        }
+
+        .cake-lit {
+            position: absolute;
+            left: 50%;
+            bottom: -16%;
+            transform: translateX(-50%);
+            width: 120%;
+            height: 120%;
+            background: radial-gradient(ellipse 42% 34% at 50% 62%, rgba(255,190,90,0.35) 0%, rgba(255,170,60,0.14) 45%, rgba(255,160,50,0) 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* 蜡烛：垫在蛋糕层后面，底端插进蛋糕顶部的花环区域，只露出烛身与火焰 */
+        .candles {
+            position: absolute;
+            left: 50%;
+            bottom: 72%;
+            transform: translateX(-50%);
+            width: 74%;
+            z-index: 1;
+        }
+
+        .cake {
+            position: relative;
+            width: 100%;
+            display: block;
+            z-index: 10;
+        }
+
+        /* 烛光呼吸 */
+        .candle-glow {
+            position: absolute;
+            left: 50%;
+            bottom: 88%;
+            transform: translateX(-50%);
+            width: 80%;
+            aspect-ratio: 1.6 / 1;
+            background: radial-gradient(ellipse 50% 42% at 50% 45%, rgba(255,214,120,0.50) 0%, rgba(255,180,70,0.18) 45%, rgba(255,170,60,0) 72%);
+            animation: glow 3.2s ease-in-out infinite;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        @keyframes glow {
+            0%, 100% { opacity: 0.85; transform: translateX(-50%) scale(1); }
+            50%      { opacity: 1;    transform: translateX(-50%) scale(1.06); }
+        }
+
+        /* 蜡烛微微摇摆 */
+        .candles {
+            transform-origin: center bottom;
+            animation: sway 6s ease-in-out infinite;
+        }
+
+        @keyframes sway {
+            0%, 100% { transform: translateX(-50%) rotate(0deg); }
+            30%      { transform: translateX(-50%) rotate(0.5deg); }
+            60%      { transform: translateX(-50%) rotate(-0.5deg); }
+        }
+
+        /* ========== 散景漂浮粒子 ========== */
+        .bokeh {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        .bokeh span {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,200,110,0.85) 0%, rgba(255,170,70,0.28) 45%, rgba(255,170,70,0) 70%);
+            filter: blur(1px);
+            animation: float linear infinite;
+            opacity: 0;
+        }
+
+        .bokeh span:nth-child(1)  { left: 12%; bottom: -4%; width: 10px; height: 10px; animation-duration: 14s; }
+        .bokeh span:nth-child(2)  { left: 26%; bottom: -4%; width: 6px;  height: 6px;  animation-duration: 18s; animation-delay: 3s; }
+        .bokeh span:nth-child(3)  { left: 41%; bottom: -4%; width: 14px; height: 14px; animation-duration: 12s; animation-delay: 1s; }
+        .bokeh span:nth-child(4)  { left: 58%; bottom: -4%; width: 7px;  height: 7px;  animation-duration: 16s; animation-delay: 5s; }
+        .bokeh span:nth-child(5)  { left: 71%; bottom: -4%; width: 11px; height: 11px; animation-duration: 15s; animation-delay: 2s; }
+        .bokeh span:nth-child(6)  { left: 84%; bottom: -4%; width: 8px;  height: 8px;  animation-duration: 20s; animation-delay: 6s; }
+        .bokeh span:nth-child(7)  { left: 91%; bottom: -4%; width: 12px; height: 12px; animation-duration: 13s; animation-delay: 4s; }
+
+        @keyframes float {
+            0%   { transform: translateY(0) translateX(0); opacity: 0; }
+            8%   { opacity: 0.9; }
+            85%  { opacity: 0.5; }
+            100% { transform: translateY(-92vh) translateX(3vw); opacity: 0; }
+        }
+
+        /* ========== 顶部导航 ========== */
+        .topbar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 26px 40px;
+            z-index: 10;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #e8e2d5;
+            font-size: 15px;
+            letter-spacing: 2px;
+        }
+
+        .brand .sun {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background: radial-gradient(circle, rgba(255,214,110,0.25), rgba(255,214,110,0.05));
+            border: 1px solid rgba(255,214,110,0.35);
+            color: #ffd66e;
+            font-size: 14px;
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .music {
+            color: #cdbfa6;
+            font-size: 17px;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+
+        .mute-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 18px 8px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.14);
+            background: rgba(20,26,40,0.55);
+            backdrop-filter: blur(6px);
+            color: #d8d2c4;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .mute-btn:hover { background: rgba(40,48,66,0.7); }
+
+        /* ========== 中央文案 ========== */
+        .hero {
+            position: absolute;
+            top: 9%;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 10;
+            color: #f3ead9;
+            animation: rise 1.2s ease-out both;
+        }
+
+        @keyframes rise {
+            from { opacity: 0; transform: translateX(-50%) translateY(16px); }
+            to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+
+        .hero h1 {
+            font-family: "Noto Serif SC", "Songti SC", STSong, "SimSun", serif;
+            font-size: clamp(30px, 4.6vw, 56px);
+            font-weight: 600;
+            letter-spacing: 6px;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.5), 0 0 40px rgba(255,190,90,0.12);
+        }
+
+        .hero p {
+            margin-top: 18px;
+            font-size: clamp(13px, 1.35vw, 16px);
+            letter-spacing: 3px;
+            color: rgba(226, 217, 199, 0.78);
+        }
+
+        .start-btn {
+            margin-top: 34px;
+            display: inline-flex;
+            align-items: center;
+            gap: 14px;
+            padding: 17px 52px;
+            border: none;
+            border-radius: 999px;
+            font-size: 16px;
+            letter-spacing: 4px;
+            font-family: "Noto Serif SC", "Songti SC", STSong, serif;
+            color: #3b2a12;
+            background: linear-gradient(180deg, #fdf3dd 0%, #f3e2bd 100%);
+            box-shadow: 0 6px 30px rgba(255,200,110,0.25), 0 2px 8px rgba(0,0,0,0.35);
+            cursor: pointer;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(255,200,110,0.35), 0 2px 8px rgba(0,0,0,0.35);
+        }
+
+        .start-btn .arrow {
+            font-size: 18px;
+            transition: transform 0.25s ease;
+        }
+
+        .start-btn:hover .arrow { transform: translateX(4px); }
+
+        /* ========== 底部状态栏 ========== */
+        .progress {
+            position: absolute;
+            left: 40px;
+            bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            color: rgba(226, 217, 199, 0.75);
+            font-size: 13px;
+            letter-spacing: 1px;
+            z-index: 10;
+        }
+
+        .progress .fraction { color: rgba(226,217,199,0.55); }
+
+        .steps {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .steps .dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .steps .dot.active {
+            background: #f0d9a8;
+            box-shadow: 0 0 8px rgba(255,210,130,0.6);
+        }
+
+        .steps .line {
+            width: 26px;
+            height: 2px;
+            border-radius: 2px;
+            display: inline-block;
+            background: rgba(226,217,199,0.35);
+        }
+
+        .reduced-btn {
+            position: absolute;
+            opacity: 0;
+            right: 40px;
+            bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 18px 8px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.14);
+            background: rgba(20,26,40,0.55);
+            backdrop-filter: blur(6px);
+            color: #d8d2c4;
+            font-size: 13px;
+            cursor: pointer;
+            z-index: 10;
+            transition: background 0.2s;
+        }
+
+        .reduced-btn:hover { background: rgba(40,48,66,0.7); }
+
+        /* ========== 许愿模式（step2）：蛋糕放大、UI 与照片墙淡出、祝福气泡升起 ========== */
+        .hero, .progress, .topbar {
+            transition: opacity 0.9s ease, transform 0.9s ease;
+        }
+
+        body.wish .hero {
+            animation: none;
+            opacity: 0;
+            transform: translateX(-50%) translateY(-24px);
+            pointer-events: none;
+        }
+
+        body.wish .progress,
+        body.wish .topbar {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .photo-ring {
+            transition: opacity 1.1s ease;
+        }
+
+        body.wish .photo-ring {
+            opacity: 0;
+        }
+
+        .cake-wrap {
+            overflow: visible;
+            transition: transform 1.6s cubic-bezier(0.22, 1, 0.36, 1);
+            transform-origin: 50% 92%;
+        }
+
+        body.wish .cake-wrap {
+            transform: translateX(-50%) scale(1.18);
+        }
+
+        /* 祝福气泡：从底部升起的小光球与祝福语气泡 */
+        .bubbles {
+            position: absolute;
+            inset: 0;
+            z-index: 3;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .bless-bubble {
+            position: absolute;
+            left: var(--x);
+            bottom: -8%;
+            animation: bless-rise var(--dur) ease-in forwards;
+            will-change: transform, opacity;
+        }
+
+        .bless-orb {
+            width: var(--size);
+            height: var(--size);
+            background: url('assets/爱心.png') no-repeat center / 100% 100%;
+            filter: drop-shadow(0 3px 12px rgba(255,190,90,0.3));
+        }
+
+        .bless-text {
+            display: inline-block;
+            border: 10px solid transparent;
+            border-image-source: url('assets/文字背景.png');
+            border-image-slice: 0 22% 0 33% fill;
+            border-image-width: 0 40px 0 60px;
+            border-image-repeat: stretch;
+            padding: 12px 44px 12px 68px;
+            color: #fff6e3;
+            font-size: 15px;
+            font-family: "Noto Serif SC", "Songti SC", STSong, serif;
+            letter-spacing: 2px;
+            white-space: nowrap;
+            text-shadow: 0 1px 8px rgba(130,85,20,0.45);
+            filter: drop-shadow(0 8px 24px rgba(255,180,90,0.2));
+        }
+
+        @keyframes bless-rise {
+            0%   { transform: translate3d(0, 0, 0) rotate(var(--tilt, 0deg)) scale(0.5); opacity: 0; }
+            10%  { opacity: var(--o, 0.9); }
+            72%  { opacity: var(--o, 0.9); }
+            100% { transform: translate3d(var(--drift), -86vh, 0) rotate(var(--tilt, 0deg)) scale(1.05); opacity: 0; }
+        }
+
+        /* ========== 许愿输入框（asset-7 背景） ========== */
+        .wish-box {
+            position: absolute;
+            left: 50%;
+            top: 24%;
+            width: min(52vw, 640px);
+            height: 450px;
+            aspect-ratio: 1.9;
+            transform: translate(-50%, -50%) scale(0.82);
+            background: url('assets/许愿输入框.png') no-repeat center / 100% 100%;
+            z-index: 12;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s ease 0.8s, transform 1s cubic-bezier(0.22, 1, 0.36, 1) 0.8s;
+        }
+
+        .wish-title {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 28%;
+            text-align: center;
+            font-family: "Noto Serif SC", "Songti SC", STSong, serif;
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: 4px;
+            color: #f7ecd2;
+            text-shadow: 0 2px 14px rgba(0,0,0,0.3);
+        }
+
+        .wish-sub {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 36%;
+            text-align: center;
+            font-size: 16px;
+            letter-spacing: 3px;
+            color: rgba(137, 137, 137, 0.72);
+        }
+
+        body.wish .wish-box {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        body.wish-done .wish-box {
+            opacity: 0;
+            pointer-events: none;
+            transform: translate(-50%, -60%) scale(0.92);
+            transition-delay: 0s;
+        }
+
+        .wi-field {
+            position: absolute;
+            left: 12.2%;
+            top: 41%;
+            width: 73%;
+            height: 18%;
+            display: flex;
+            align-items: center;
+            gap: 3%;
+            padding: 0 3% 0 5%;
+        }
+
+        .wi-icon {
+            width: clamp(15px, 1.5vw, 22px);
+            height: auto;
+            flex: none;
+            color: rgba(255,225,170,0.75);
+        }
+
+        .wish-box input {
+            flex: 1;
+            min-width: 0;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #ffeecb;
+            font-size: clamp(14px, 1.4vw, 20px);
+            letter-spacing: 2px;
+            text-align: center;
+            font-family: "Noto Serif SC", "Songti SC", STSong, serif;
+            -webkit-text-security: disc;
+        }
+
+        .wish-box input.plain {
+            -webkit-text-security: none;
+            text-security: none;
+        }
+
+        .wish-box input::placeholder {
+            color: rgba(255,230,180,0.45);
+            letter-spacing: 2px;
+        }
+
+        .eye-btn {
+            position: relative;
+            left: -40px;
+            top: 2px;
+            flex: none;
+            width: 20px;
+            height: 20px;
+            padding: 0;
+            display: grid;
+            place-items: center;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: rgba(255,225,170,0.75);
+        }
+
+        .eye-btn svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .eye-btn .eye-on { display: none; }
+        .eye-btn.showing .eye-off { display: none; }
+        .eye-btn.showing .eye-on { display: block; }
+
+        .wish-submit {
+            position: absolute;
+            left: 25.7%;
+            top: 57%;
+            width: 45.9%;
+            height: 18%;
+            display: grid;
+            place-items: center;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: #6b4a12;
+            font-size: clamp(15px, 1.5vw, 22px);
+            font-weight: 600;
+            letter-spacing: 4px;
+            text-indent: 4px;
+            font-family: "Noto Serif SC", "Songti SC", STSong, serif;
+            transition: filter 0.2s ease;
+        }
+
+        .wish-submit:hover { filter: brightness(1.06); }
+
+        /* 愿望提交后化作大气泡飞向夜空 */
+        .bless-wish {
+            font-size: clamp(16px, 1.7vw, 24px) !important;
+            padding-left: 82px !important;
+            padding-right: 52px !important;
+            z-index: 5;
+        }
+
+        body.wish-done .wish-box { transition-delay: 0s; }
+
+        /* 减少动态效果模式：暂停所有动画 */
+        body.reduced .candles,
+        body.reduced .candle-glow,
+        body.reduced .bokeh span,
+        body.reduced .hero {
+            animation: none !important;
+        }
+
+        body.reduced .bless-bubble {
+            animation-play-state: paused;
+        }
+
+        /* ========== 蜡烛：单根蜡烛 + 三态火焰（常态 / 被吹动 / 熄灭烟雾） ========== */
+        .candle {
+            position: absolute;
+            bottom: 72%;
+            transform: translateX(-50%);
+            z-index: 10;
+            pointer-events: none;
+            overflow: visible;
+        }
+
+        .candle .stick {
+            position: relative;
+            display: block;
+            width: 100%;
+            height: auto;
+            z-index: 1;
+        }
+
+        .candle .flame {
+            position: absolute;
+            left: 50%;
+            bottom: 70%;
+            width: 100%;
+            z-index: 5;
+            transform: translateX(-50%);
+            transition: opacity 0.22s ease;
+            pointer-events: none;
+        }
+
+        .candle .f-n {
+            opacity: 1;
+            transform-origin: 50% 88%;
+            animation: flame-flicker 1.7s ease-in-out infinite alternate;
+        }
+
+        .candle .f-b {
+            opacity: 0;
+            transform-origin: 46% 88%;
+            animation: flame-gust 0.45s ease-in-out infinite alternate;
+        }
+
+        .candle .f-x {
+            opacity: 0;
+            width: auto;
+            height: 125%;
+            z-index: 3;
+        }
+
+        body.gusting .candle:not(.out) .f-n { opacity: 0; }
+        body.gusting .candle:not(.out) .f-b { opacity: 1; }
+
+        .candle.out .f-n, .candle.out .f-b { opacity: 0 !important; }
+
+        .candle.out .f-x { opacity: 1; animation: smoke-rise 5.5s ease-out forwards; }
+
+        @keyframes flame-flicker {
+            0%   { transform: translateX(-50%) scale(1, 1) skewX(0deg); }
+            35%  { transform: translateX(-50%) scale(1.05, 0.95) skewX(2deg); }
+            70%  { transform: translateX(-50%) scale(0.95, 1.04) skewX(-2deg); }
+            100% { transform: translateX(-50%) scale(1.02, 0.97) skewX(-1deg); }
+        }
+
+        @keyframes flame-gust {
+            from { transform: translateX(-50%) rotate(-6deg); }
+            to   { transform: translateX(-50%) rotate(-15deg); }
+        }
+
+        @keyframes smoke-rise {
+            0%   { opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.72); }
+            12%  { opacity: 0.9; }
+            70%  { opacity: 0.55; }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-52px) scale(1.15); }
+        }
+
+        body.reduced .candle .f-n,
+        body.reduced .candle .f-b { animation: none !important; }
+
+        /* ========== 吹蜡烛卡片（step3） ========== */
+        .blow-card {
+            position: absolute;
+            left: 50%;
+            top: 5%;
+            width: min(44vw, 400px);
+            transform: translate(-50%, -26px) scale(0.94);
+            padding: 24px 28px 22px;
+            border-radius: 22px;
+            background: linear-gradient(180deg, rgba(46,52,68,0.66) 0%, rgba(28,32,46,0.58) 100%);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,215,150,0.32);
+            box-shadow: 0 24px 70px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.10);
+            text-align: center;
+            z-index: 12;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s ease 0.5s, transform 1s cubic-bezier(0.22, 1, 0.36, 1) 0.5s;
+        }
+
+        body.blow .blow-card {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translate(-50%, 0) scale(1);
+        }
+
+        body.candles-out .blow-card,
+        body.card-out .blow-card {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            transition-delay: 0s;
+        }
+
+        /* 许好后蛋糕恢复原始大小，照片墙恢复显示 */
+        body.blow .cake-wrap {
+            transform: translateX(-50%) scale(1);
+        }
+
+        body.blow .photo-ring {
+            opacity: 0;
+        }
+
+        /* ========== 时间轨迹照片背景（step3 使用，替代轮播） ========== */
+        .time-scene {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(var(--memShift, 0vw));
+            transition: opacity 1.2s ease, transform 1.4s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        body.blow .time-scene {
+            opacity: 1;
+        }
+
+        /* 背景墙与时间轨迹同步平移 */
+        .photo-ring {
+            transform: translateX(var(--memShift, 0vw));
+            transition: opacity 1.1s ease, transform 1.4s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .time-path {
+            position: absolute;
+            inset: 0 -16vw;   /* 左右各加宽 16vw，平移时不露边 */
+            height: 100%;
+        }
+
+        .time-path path {
+            fill: none;
+            stroke: rgba(255,214,140,0.9);
+            stroke-width: 3;
+            stroke-dasharray: 0.1 11;
+            stroke-linecap: round;
+            filter: drop-shadow(0 0 6px rgba(255,190,90,0.85)) drop-shadow(0 0 16px rgba(255,170,60,0.45));
+            animation: path-glow 3.2s ease-in-out infinite alternate;
+        }
+
+        @keyframes path-glow {
+            from { opacity: 0.65; }
+            to   { opacity: 1; }
+        }
+
+        .tstar {
+            position: absolute;
+            color: #ffdf9a;
+            font-size: 13px;
+            text-shadow: 0 0 8px rgba(255,200,110,0.9), 0 0 18px rgba(255,170,60,0.6);
+            animation: path-glow 2.6s ease-in-out infinite alternate;
+        }
+
+        /* 星芒的垂直光柱 */
+        .tstar::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 1.5px;
+            height: 46px;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(180deg, rgba(255,220,150,0) 0%, rgba(255,225,160,0.85) 50%, rgba(255,220,150,0) 100%);
+            filter: blur(0.5px);
+        }
+
+        .tp {
+            position: absolute;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 16px 44px rgba(0,0,0,0.55), 0 0 22px rgba(255,190,110,0.08);
+        }
+
+        .tp img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .tp.tp1 { left: 4%;  top: 17%; width: 11vw; aspect-ratio: 3/2; transform: rotate(-7deg); filter: blur(1.5px); opacity: 0.85; }
+        .tp.tp2 { left: 13%; top: 33%; width: 11vw; aspect-ratio: 3/2; transform: rotate(5deg); }
+        .tp.tp3 { left: 25%; top: 14%; width: 9.5vw; aspect-ratio: 3/2; transform: rotate(-5deg); filter: blur(1px); opacity: 0.9; }
+        .tp.tp4 { right: 27%; top: 12%; width: 9vw;  aspect-ratio: 3/2; transform: rotate(6deg); filter: blur(2px); opacity: 0.8; }
+        .tp.tp5 { right: 15%; top: 21%; width: 11vw; aspect-ratio: 3/2; transform: rotate(-4deg); }
+        .tp.tp6 { right: 3.5%; top: 31%; width: 11vw; aspect-ratio: 3/2; transform: rotate(7deg); filter: blur(1px); opacity: 0.85; }
+        .tp.tp7 { left: 7%;  top: 45%; width: 9vw;  aspect-ratio: 3/2; transform: rotate(4deg); filter: blur(2.5px); opacity: 0.65; }
+        .time-photos {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        .time-photos .tp {
+            pointer-events: auto;
+        }
+
+        .tp.tp-dynamic {
+            width: clamp(88px, 11vw, 172px);
+            aspect-ratio: 3 / 2;
+        }
+
+        .blow-title {
+            font-family: "Noto Serif SC", "Songti SC", STSong, serif;
+            font-size: clamp(18px, 1.9vw, 26px);
+            letter-spacing: 3px;
+            color: #f7ecd2;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .blow-title .spark {
+            color: #ffd98a;
+            font-size: 0.8em;
+            margin: 0 12px;
+        }
+
+        .blow-sub {
+            margin-top: 10px;
+            font-size: clamp(12px, 1.2vw, 15px);
+            letter-spacing: 2px;
+            color: rgba(255,235,200,0.8);
+        }
+
+        .blow-mic-row {
+            overflow: visible;
+            margin-top: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+        }
+
+        .mic-btn {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,222,160,0.45);
+            background: rgba(255,240,210,0.08);
+            color: rgba(255,230,180,0.9);
+            display: grid;
+            place-items: center;
+        }
+
+        .mic-btn svg { width: 22px; height: 22px; }
+
+        .mic-btn.live { animation: mic-pulse 2s ease-out infinite; }
+
+        @keyframes mic-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255,200,110,0.35); }
+            100% { box-shadow: 0 0 0 16px rgba(255,200,110,0); }
+        }
+
+        .blow-bars {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            height: 34px;
+        }
+
+        .blow-bars i {
+            width: 3.5px;
+            height: 30px;
+            border-radius: 2px;
+            background: linear-gradient(180deg, #ffe9bd, #f0b96a);
+            transform: scaleY(0.18);
+            transform-origin: center;
+        }
+
+        .blow-hint {
+            margin-top: 16px;
+            font-size: clamp(12px, 1.15vw, 14px);
+            letter-spacing: 2px;
+            color: rgba(255,235,200,0.82);
+        }
+
+        .blow-note {
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            font-size: 11px;
+            letter-spacing: 1px;
+            color: rgba(255,235,200,0.45);
+        }
+
+        .blow-note svg { width: 12px; height: 12px; flex: none; }
+
+        .blow-hold {
+            position: relative;
+            overflow: hidden;
+            margin-top: 18px;
+            width: 100%;
+            height: 48px;
+            border: none;
+            border-radius: 999px;
+            background: linear-gradient(180deg, #ffeec4 0%, #f6cd8d 100%);
+            color: #6b4a12;
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            font-family: "Noto Serif SC", "Songti SC", STSong, serif;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 8px 26px rgba(255,190,100,0.35);
+            transition: filter 0.2s ease;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .blow-hold:active, .blow-hold.holding { filter: brightness(1.05); }
+
+        .blow-hold::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: rgba(122,84,20,0.22);
+            transform: scaleX(var(--p, 0));
+            transform-origin: left center;
+        }
+
+        .blow-hold span, .blow-hold svg { position: relative; }
+
+        .blow-hold svg { width: 17px; height: 17px; }
+
+        /* 蜡烛吹灭后：灯光收起、卡片淡出 */
+        body.candles-out .candles {
+            filter: brightness(0.5) saturate(0.65);
+            transition: filter 1.4s ease;
+        }
+
+        body.candles-out .candle-glow {
+            animation: none;
+            opacity: 0;
+            transition: opacity 1.4s ease;
+        }
+
+        body.candles-out .cake-lit {
+            opacity: 0;
+            transition: opacity 1.4s ease;
+        }
+
+        body.candles-out .blow-card {
+            opacity: 0;
+            pointer-events: none;
+            transition-delay: 0s;
+        }
+
+        body.reduced .mic-btn.live { animation: none !important; }
+
+        /* ========== 时间轴回忆卡（step4：节点场景依次展示） ========== */
+        .mem-card {
+            position: absolute;
+            left: 50%;
+            top: 18%;
+            width: min(37vw, 580px);
+            aspect-ratio: 1556 / 886;
+            transform: translate(-50%, -24px) scale(0.94);
+            background: url('assets/时间相册卡片.png') no-repeat center / 100% 100%;
+            box-shadow: 0 26px 80px rgba(0,0,0,0.55);
+            z-index: 12;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.9s ease, transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        body.mem .mem-card {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translate(-50%, 0) scale(1);
+        }
+
+        .mem-head {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 14%;
+            text-align: center;
+            font-family: "Noto Serif SC", "Songti SC", STSong, serif;
+            font-size: clamp(16px, 1.6vw, 21px);
+            letter-spacing: 3px;
+            color: #f7ecd2;
+        }
+
+        .mem-head .spark {
+            color: #ffd98a;
+            font-size: 0.8em;
+            margin: 0 10px;
+        }
+
+        .mem-body {
+            position: absolute;
+            inset: 0;
+            transition: opacity 0.32s ease;
+        }
+
+        .mem-body.switching { opacity: 0; }
+
+        .mem-photos {
+            position: absolute;
+            inset: 0;
+        }
+
+        .mp {
+            position: absolute;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .mp img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* 对齐素材内烘焙好的三个空相框 */
+        .mp-a { left: 8.5%; top: 35%; width: 25.5%; height: 36%; transform: rotate(354deg); z-index: 3; }
+        .mp-b { left: 35%; top: 38.1%; width: 13%; height: 16%; transform: rotate(6deg); z-index: 2; }
+        .mp-c { left: 36%; top: 57%; width: 14%; height: 15.9%; transform: rotate(6deg); z-index: 1; }
+
+        .mem-info {
+            position: absolute;
+            left: 53%;
+            top: 34%;
+            width: 40%;
+        }
+
+        .mem-date {
+            font-family: "Noto Serif SC", "Songti SC", STSong, serif;
+            font-size: clamp(20px, 1.9vw, 27px);
+            letter-spacing: 2px;
+            color: #fff3dd;
+        }
+
+        .mem-place {
+            margin-top: 7px;
+            font-size: 13px;
+            letter-spacing: 1px;
+            color: rgba(255,235,200,0.82);
+        }
+
+        .mem-desc {
+            margin-top: 11px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,220,160,0.25);
+            font-size: 12.5px;
+            line-height: 1.65;
+            letter-spacing: 1px;
+            color: rgba(255,240,215,0.85);
+        }
+
+        /* 当前节点对应的星芒高亮 */
+        .tstar.active {
+            font-size: 19px;
+            color: #fff2c9;
+            animation: path-glow 1.1s ease-in-out infinite alternate;
+        }
+
+        /* ========== 照片放大灯箱 ========== */
+        .lightbox {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            display: grid;
+            place-items: center;
+            background: rgba(10, 12, 20, 0.55);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            opacity: 0;
+            pointer-events: none;
+            cursor: zoom-out;
+            transition: opacity 0.35s ease;
+        }
+
+        .lightbox.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .lightbox img {
+            width: min(72vw, 1100px);
+            max-height: 82vh;
+            object-fit: contain;
+            border-radius: 12px;
+            box-shadow: 0 30px 90px rgba(0,0,0,0.65), 0 0 70px rgba(255,190,100,0.15);
+            transform: scale(0.92);
+            transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .lightbox.show img { transform: scale(1); }
+
+        body.blow .tp {
+            pointer-events: auto;
+            cursor: zoom-in;
+        }
+
+        .mp { cursor: zoom-in; }
+
+        .music.on { color: #ffd98a; text-shadow: 0 0 10px rgba(255,200,110,0.9); }
+
+        /* ========== 终章祝福卡（step5：最后一个场景看完后展示） ========== */
+        .final-card {
+            position: absolute;
+            left: 50%;
+            top: 7%;
+            width: min(37vw, 580px);
+            aspect-ratio: 1556 / 880;
+            transform: translate(-50%, -24px) scale(0.94);
+            background: url('assets/打开礼物卡片.png') no-repeat center / 100% 100%;
+            box-shadow: 0 26px 80px rgba(0,0,0,0.55);
+            z-index: 12;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.9s ease, transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        body.final .final-card {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translate(-50%, 0) scale(1);
+        }
+
+        .final-title {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 8%;
+            font-family: "Noto Serif SC", "Songti SC", STSong, serif;
+            font-size: clamp(18px, 1.8vw, 26px);
+            letter-spacing: 3px;
+            line-height: 1.35;
+            color: #f7ecd2;
+        }
+
+        .final-title .spark {
+            color: #ffd98a;
+            font-size: 0.8em;
+            margin: 0 12px;
+        }
+
+        .final-sub {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 22%;
+            margin-top: 0;
+            font-size: clamp(12px, 1.2vw, 15px);
+            letter-spacing: 2px;
+            line-height: 1.5;
+            color: rgba(255,235,200,0.78);
+        }
+
+        .final-input {
+            position: absolute;
+            left: 9%;
+            top: 32%;
+            width: 82%;
+            height: 27.5%;
+            margin: 0;
+            resize: none;
+            border-radius: 14px;
+            border: 1px solid rgba(255,222,160,0.3);
+            background: rgba(255,240,210,0.07);
+            color: #ffeecb;
+            font-size: 15px;
+            letter-spacing: 1px;
+            line-height: 1.6;
+            padding: 6px;
+            outline: none;
+            font-family: "Noto Serif SC", "Songti SC", STSong, serif;
+            box-sizing: border-box;
+        }
+
+        .final-input::placeholder { color: rgba(255,230,180,0.45); }
+        .final-input:focus { border-color: rgba(255,222,160,0.55); }
+
+        .final-btns {
+            position: absolute;
+            left: 7.5%;
+            top: 67%;
+            width: 84%;
+            height: 9%;
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+            gap: 13%;
+            margin: 0 3.5%;
+        }
+
+        .final-replay,
+        .final-continue {
+            flex: 0 0 auto;
+            min-width: 0;
+            height: 100%;
+            padding: 0 18px;
+            border-radius: 999px;
+            font-size: 20px;
+            letter-spacing: 1px;
+            line-height: 1;
+            white-space: nowrap;
+            cursor: pointer;
+            font-family: "Noto Serif SC", "Songti SC", STSong, serif;
+            transition: filter 0.2s ease, transform 0.2s ease;
+            background-color: transparent;
+        }
+
+        .final-replay:hover, .final-continue:hover { filter: brightness(1.08); }
+
+        .final-replay {
+            border: none;
+            color: #ffeecb;
+        }
+
+        .final-continue {
+            width: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border: none;
+            color: #6b4a12;
+            font-weight: 600;
+        }
+
+        /* 对齐素材内烘焙好的三个金框相框 */
+        .final-photos { position: absolute; inset: 0; }
+        .fp { position: absolute; border-radius: 8px; overflow: hidden; }
+        .fp img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .fp-a { left: 7.7%; top: 34.4%; width: 26%; height: 39.5%; transform: rotate(-3deg); z-index: 3; }
+        .fp-b { left: 36.2%; top: 38.3%; width: 13%; height: 16.5%; transform: rotate(2deg); z-index: 2; }
+        .fp-c { left: 36.2%; top: 57.6%; width: 13.9%; height: 17.5%; transform: rotate(-2deg); z-index: 1; }
+
+        /* 终章阶段回忆卡保持隐藏 */
+        body.final .mem-card { opacity: 0; pointer-events: none; }
+
+        /* ========== 礼物：按钮图标 + 飞入放大展示 ========== */
+        .final-continue {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .gift-ico {
+            width: 30px;
+            height: 30px;
+            flex: 0 0 17px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 6px rgba(255,190,100,0.5));
+        }
+
+        .gift-show {
+            position: fixed;
+            inset: 0;
+            z-index: 60;
+            background: rgba(10, 12, 20, 0.45);
+            opacity: 0;
+            pointer-events: none;
+            cursor: zoom-out;
+            transition: opacity 0.4s ease;
+        }
+
+        .gift-show.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .gift-big {
+            position: fixed;
+            transform: translate(-50%, -50%);
+            width: 0;
+            height: auto;
+            aspect-ratio: 1;
+            overflow: visible;
+            opacity: 0;
+            filter: drop-shadow(0 18px 60px rgba(255,190,100,0.5));
+            will-change: left, top, width, opacity;
+        }
+
+        .gift-layer {
+            position: absolute;
+            left: 50%;
+            display: block;
+            width: 100%;
+            height: auto;
+            transform: translateX(-50%);
+            pointer-events: none;
+        }
+
+        /* 盒体在最上层，用前沿遮住手机下半部分 */
+        .gift-box {
+            bottom: 0;
+            z-index: 4;
+            opacity: 1;
+        }
+
+        .gift-lid {
+            left: 57%;
+            bottom: 26%;
+            z-index: 4;
+            opacity: 1;
+            transform-origin: 50% 82%;
+            transform: translateX(-50%) rotate(343deg);
+            transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .gift-big.open .gift-lid {
+            transform: translateX(-62%) translateY(-42%) rotate(-16deg);
+        }
+
+        .gift-phone {
+            bottom: 52%;
+            width: 50%;
+            z-index: 4;
+            opacity: 0;
+            transform-origin: 50% 100%;
+            transform: translateX(-50%) translateY(34%) scale(0.58) rotate(-8deg);
+            transition: opacity 0.25s ease, transform 0.95s cubic-bezier(0.34, 1.35, 0.64, 1);
+        }
+
+        .gift-big.open .gift-phone {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-8%) scale(1.22) rotate(-8deg);
+            transition-delay: 0.4s;
+        }
+
+        @media (max-width: 720px) {
+            .cake-wrap { width: 78vw; bottom: 13%; }
+            .topbar { padding: 18px 22px; }
+            .progress, .reduced-btn { left: 22px; right: auto; }
+            .reduced-btn { left: auto; right: 22px; }
+            .hero { top: 12%; }
+            .hero h1 { letter-spacing: 3px; }
+            .wish-box { width: min(84vw, 640px); top: 40%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="stage">
+        <!-- 背景1 -->
+        <img class="bg" src="assets/背景1.png" alt="">
+        <div class="vignette"></div>
+
+        <!-- 照片墙：环形轮播（卡片由 JS 动态生成） -->
+        <div class="photo-ring" aria-hidden="true"></div>
+
+        <!-- 时间轨迹照片背景（step3：照片沿星光轨迹散布） -->
+        <div class="time-scene" aria-hidden="true">
+            <svg class="time-path" viewBox="0 0 1600 900" preserveAspectRatio="none">
+                <path d="M-40 420 C 140 470, 340 515, 600 515 C 800 515, 940 448, 1080 388 C 1200 345, 1400 322, 1640 315" />
+            </svg>
+            <span class="tstar" style="left: 12%; top: 46%;">✦</span>
+            <span class="tstar" style="left: 18.8%; top: 48.9%;">✦</span>
+            <span class="tstar" style="left: 55%; top: 52%;">✦</span>
+            <span class="tstar" style="left: 68.9%; top: 43.8%;">✦</span>
+            <span class="tstar" style="left: 78.4%; top: 39.8%;">✦</span>
+            <span class="tstar" style="left: 95%; top: 37%;">✦</span>
+            <div class="time-photos" aria-hidden="true"></div>
+        </div>
+
+        <!--蛋糕 + 蜡烛 -->
+        <div class="cake-wrap">
+            <div class="cake-lit"></div>
+            <div class="candle-glow"></div>
+            <!-- 蜡烛：单根蜡烛 + 三态火焰（常态 / 被吹动 / 熄灭烟雾） -->
+            <div class="candle" style="left: 31.8%; width: 17.4%;">
+                <img class="stick" src="assets/单根蜡烛.png" alt="">
+                <img class="flame f-n" src="assets/常态火焰.png" alt="">
+                <img class="flame f-b" src="assets/吹动时的火焰.png" alt="">
+                <img class="flame f-x" src="assets/熄灭时的火焰.png" alt="">
+            </div>
+            <div class="candle" style="left: 38.7%; width: 20%;">
+                <img class="stick" src="assets/单根蜡烛.png" alt="">
+                <img class="flame f-n" src="assets/常态火焰.png" alt="">
+                <img class="flame f-b" src="assets/吹动时的火焰.png" alt="">
+                <img class="flame f-x" src="assets/熄灭时的火焰.png" alt="">
+            </div>
+            <div class="candle" style="left: 48.6%; width: 24%;">
+                <img class="stick" src="assets/单根蜡烛.png" alt="">
+                <img class="flame f-n" src="assets/常态火焰.png" alt="">
+                <img class="flame f-b" src="assets/吹动时的火焰.png" alt="">
+                <img class="flame f-x" src="assets/熄灭时的火焰.png" alt="">
+            </div>
+            <div class="candle" style="left: 58.7%; width: 17.4%;">
+                <img class="stick" src="assets/单根蜡烛.png" alt="">
+                <img class="flame f-n" src="assets/常态火焰.png" alt="">
+                <img class="flame f-b" src="assets/吹动时的火焰.png" alt="">
+                <img class="flame f-x" src="assets/熄灭时的火焰.png" alt="">
+            </div>
+            <div class="candle" style="left: 61.2%; width: 17.1%;">
+                <img class="stick" src="assets/单根蜡烛.png" alt="">
+                <img class="flame f-n" src="assets/常态火焰.png" alt="">
+                <img class="flame f-b" src="assets/吹动时的火焰.png" alt="">
+                <img class="flame f-x" src="assets/熄灭时的火焰.png" alt="">
+            </div>
+            <div class="candle" style="left: 69.2%; width: 15.2%;">
+                <img class="stick" src="assets/单根蜡烛.png" alt="">
+                <img class="flame f-n" src="assets/常态火焰.png" alt="">
+                <img class="flame f-b" src="assets/吹动时的火焰.png" alt="">
+                <img class="flame f-x" src="assets/熄灭时的火焰.png" alt="">
+            </div>
+            <img class="cake" src="assets/蛋糕.png" alt="生日蛋糕">
+        </div>
+
+        <div class="bokeh">
+            <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+        </div>
+
+        <!-- 祝福气泡（许愿模式由 JS 动态生成） -->
+        <div class="bubbles" aria-hidden="true"></div>
+
+        <!-- 许愿输入框 -->
+        <div class="wish-box">
+            <h2 class="wish-title">闭上眼睛，许一个愿望吧</h2>
+            <p class="wish-sub">愿望只留给自己</p>
+            <div class="wi-field">
+                <input id="wishInput" class="plain" type="text" maxlength="16" placeholder="在心里悄悄写下愿望" autocomplete="off" lang="zh-CN" inputmode="text" autocapitalize="off" spellcheck="false">
+                <button class="eye-btn showing" type="button" title="显示 / 隐藏">
+                    <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                        <line x1="1" y1="1" x2="23" y2="23"/>
+                    </svg>
+                    <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </button>
+            </div>
+            <button class="wish-submit" type="button">许好了</button>
+        </div>
+
+        <!-- 吹蜡烛卡片 -->
+        <div class="blow-card">
+            <div class="blow-title"><span class="spark">✦</span>愿望已藏进星光里<span class="spark">✦</span></div>
+            <div class="blow-sub">现在，吹灭蜡烛吧</div>
+            <div class="blow-mic-row">
+                <div class="mic-btn" title="麦克风">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="2.5" width="6" height="11" rx="3"/>
+                        <path d="M5 11a7 7 0 0 0 14 0"/>
+                        <line x1="12" y1="18" x2="12" y2="21.5"/>
+                    </svg>
+                </div>
+                <div class="blow-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            </div>
+            <div class="blow-hint">对着麦克风轻轻吹气</div>
+            <div class="blow-note">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2.5 4.5 6v5.5c0 4.8 3.2 8.4 7.5 10 4.3-1.6 7.5-5.2 7.5-10V6L12 2.5z"/>
+                </svg>
+                <span>吹走烦恼，留下满满的祝福</span>
+            </div>
+            <button class="blow-hold" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 8h9a3 3 0 1 0-3-3"/>
+                    <path d="M3 12h13a3 3 0 1 1-3 3"/>
+                    <path d="M3 16h6a2.5 2.5 0 1 0-2.5-2.5"/>
+                </svg>
+                <span>按住吹灭蜡烛</span>
+            </button>
+        </div>
+
+        <!-- 时间轴回忆卡（依次展示每个节点场景：时间 / 地点 / 描述 / 照片） -->
+        <div class="mem-card">
+            <div class="mem-head"><span class="spark">✦</span>这一年，我们一起走过……<span class="spark">✦</span></div>
+            <div class="mem-body">
+                <div class="mem-photos">
+                    <div class="mp mp-a"><img alt=""></div>
+                    <div class="mp mp-b"><img alt=""></div>
+                    <div class="mp mp-c"><img alt=""></div>
+                </div>
+                <div class="mem-info">
+                    <div class="mem-date">X月X日</div>
+                    <div class="mem-place">📍 地点</div>
+                    <div class="mem-desc">事件描述……</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 终章祝福卡（最后一个场景看完后展示） -->
+        <div class="final-card">
+            <div class="final-title"><span class="spark">✦</span>愿所有美好，如期而至<span class="spark">✦</span></div>
+            <div class="final-sub">把这一岁的甜，都送给你</div>
+            <textarea class="final-input" maxlength="100" placeholder="写下你想对她说的甜蜜话……">亲爱的双双，生日快乐！愿你的新一岁被鲜花、阳光和惊喜温柔包围。谢谢你出现在我的生命里，往后的每一个生日，我都想陪你一起度过。愿你永远开心，被爱包围，而我会一直在你身边。</textarea>
+            <div class="final-btns">
+                <button class="final-replay" type="button">↻ 再看一次</button>
+                <button class="final-continue" type="button"><img class="gift-ico" src="assets/礼物.png" alt="">打开这份心意</button>
+            </div>
+        </div>
+
+        <!-- 礼物飞入放大展示 -->
+        <div class="gift-show">
+            <div class="gift-big">
+                <img class="gift-layer gift-box" src="assets/礼物盒子.png" alt="打开的礼物盒">
+                <img class="gift-layer gift-lid" src="assets/礼物盖子.png" alt="礼物盖子">
+                <img class="gift-layer gift-phone" src="assets/手机.png" alt="手机">
+            </div>
+        </div>
+
+        <!-- 照片放大灯箱 -->
+        <div class="lightbox"><img alt=""></div>
+
+        <!-- 顶部导航 -->
+        <div class="topbar">
+            <div class="brand">
+                <span class="sun">☀</span>
+                <span>生日仪式</span>
+            </div>
+            <div class="topbar-right">
+                <button class="music" title="音乐">♪</button>
+                <button class="mute-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M11 5 6 9H2v6h4l5 4V5z"/>
+                        <line x1="22" y1="9" x2="16" y2="15"/>
+                        <line x1="16" y1="9" x2="22" y2="15"/>
+                    </svg>
+                    <span>静音</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 中央文案 -->
+        <div class="hero">
+            <h1>为你准备了一场生日仪式</h1>
+            <p>愿这一刻的温柔，成为你新一岁里最好的开始。</p>
+            <button class="start-btn">开始许愿 <span class="arrow">→</span></button>
+        </div>
+
+        <!-- 底部进度 -->
+        <div class="progress">
+            <span class="fraction">1 / 3</span>
+            <span class="steps">
+                <span class="dot active"></span>
+                <span class="line"></span>
+                <span class="dot"></span>
+                <span>仪式即将开始</span>
+            </span>
+        </div>
+
+        <button class="reduced-btn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M13 5l5 14-7-4-7 4 5-14h4z" transform="skewX(-8)"/>
+            </svg>
+            <span>减少动态效果</span>
+        </button>
+    </div>
+
+    <script>
+        // 静音按钮切换文案
+        const muteBtn = document.querySelector('.mute-btn span');
+        let muted = true;
+        document.querySelector('.mute-btn').addEventListener('click', () => {
+            muted = !muted;
+            muteBtn.textContent = muted ? '静音' : '有声';
+        });
+
+        // ========== 背景音乐：生日快乐歌（Web Audio 合成，无需音频文件） ==========
+        const musicBtn = document.querySelector('.music');
+        let musicPlaying = false, musicCtx = null, musicStopTimer = null, musicMaster = null, musicNextTime = 0;
+
+        // [频率Hz, 拍数]，0 为休止
+        const HAPPY_BIRTHDAY = [
+            [392.00, 0.75], [392.00, 0.25], [440.00, 1], [392.00, 1], [523.25, 1], [493.88, 2],
+            [392.00, 0.75], [392.00, 0.25], [440.00, 1], [392.00, 1], [587.33, 1], [523.25, 2],
+            [392.00, 0.75], [392.00, 0.25], [783.99, 1], [659.25, 1], [523.25, 1], [493.88, 2],
+            [698.46, 0.75], [698.46, 0.25], [659.25, 1], [523.25, 1], [587.33, 1], [523.25, 2],
+            [0, 1.5],
+        ];
+
+        function playMusic() {
+            if (musicPlaying) return;
+            if (!musicCtx) musicCtx = new (window.AudioContext || window.webkitAudioContext)();
+            musicCtx.resume();
+            musicPlaying = true;
+            musicBtn.classList.add('on');
+            const beat = 0.62; // 每拍时长（约 97 BPM，温柔的速度）
+            musicNextTime = musicCtx.currentTime + 0.15;
+
+            (function scheduleLoop() {
+                if (!musicPlaying) return;
+                musicMaster = musicCtx.createGain();
+                musicMaster.gain.value = 0.16;
+                musicMaster.connect(musicCtx.destination);
+                let t = musicNextTime;
+                HAPPY_BIRTHDAY.forEach(([freq, beats]) => {
+                    const dur = beats * beat;
+                    if (freq > 0) {
+                        // 主音（三角波）+ 高八度泛音（正弦），音乐盒音色
+                        [[freq, 'triangle', 1], [freq * 2, 'sine', 0.32]].forEach(([f, type, vol]) => {
+                            const osc = musicCtx.createOscillator();
+                            const g = musicCtx.createGain();
+                            osc.type = type;
+                            osc.frequency.value = f;
+                            g.gain.setValueAtTime(0, t);
+                            g.gain.linearRampToValueAtTime(vol, t + 0.025);
+                            g.gain.exponentialRampToValueAtTime(0.001, t + Math.min(dur + 0.35, dur * 1.4));
+                            osc.connect(g).connect(musicMaster);
+                            osc.start(t);
+                            osc.stop(t + dur + 0.4);
+                        });
+                    }
+                    t += dur;
+                });
+                musicNextTime = t + 0.5; // 段间留白后循环
+                musicStopTimer = setTimeout(scheduleLoop, Math.max(0, (musicNextTime - musicCtx.currentTime) * 1000 - 100));
+            })();
+        }
+
+        function stopMusic() {
+            musicPlaying = false;
+            musicBtn.classList.remove('on');
+            if (musicStopTimer) { clearTimeout(musicStopTimer); musicStopTimer = null; }
+            if (musicMaster) { try { musicMaster.disconnect(); } catch (e) {} musicMaster = null; } // 断开即静音已排程音符
+        }
+
+        musicBtn.addEventListener('click', () => { musicPlaying ? stopMusic() : playMusic(); });
+
+        // 减少动态效果：暂停动画
+        const reducedBtn = document.querySelector('.reduced-btn');
+        reducedBtn.addEventListener('click', () => {
+            const on = document.body.classList.toggle('reduced');
+            reducedBtn.querySelector('span').textContent = on ? '恢复动态效果' : '减少动态效果';
+        });
+
+        // 开始许愿：进入 step2 —— UI 与照片墙淡出，蛋糕放大，祝福气泡从底部升起
+        const BLESSINGS = ['生日快乐', '新的一岁闪闪发光','又又生日快乐🎂', '心想事成', '平安喜乐', '天天开心', '万事胜意', '好梦成真', '被爱包围', '许个愿吧 ✨', '❤', '🎂'];
+        const bubbleBox = document.querySelector('.bubbles');
+
+        function spawnBubble() {
+            if (!document.body.classList.contains('wish')) return;   // 仅许愿模式生成
+            if (document.body.classList.contains('reduced')) return; // 减少动态效果时不生成
+            if (bubbleBox.children.length > 28) return;              // 限制同屏数量
+            const isText = Math.random() < 0.4;
+            const el = document.createElement('div');
+            el.className = 'bless-bubble ' + (isText ? 'bless-text' : 'bless-orb');
+            if (isText) el.textContent = BLESSINGS[(Math.random() * BLESSINGS.length) | 0];
+            el.style.setProperty('--x', (8 + Math.random() * 84).toFixed(1) + 'vw');
+            el.style.setProperty('--size', (100 + Math.random() * 60).toFixed(1) + 'px');
+            el.style.setProperty('--dur', (4.5 + Math.random() * 2.5).toFixed(1) + 's');
+            el.style.setProperty('--drift', (Math.random() * 10 - 5).toFixed(1) + 'vw');
+            el.style.setProperty('--o', (0.55 + Math.random() * 0.4).toFixed(2));
+            el.style.setProperty('--tilt', (Math.random() * 14 - 7).toFixed(1) + 'deg');
+            el.addEventListener('animationend', () => el.remove());
+            bubbleBox.appendChild(el);
+        }
+        setInterval(spawnBubble, 220);
+
+        document.querySelector('.start-btn').addEventListener('click', () => {
+            document.body.classList.add('wish');
+            playMusic(); // 仪式开始，响起生日快乐歌
+            setTimeout(() => { if (!document.body.classList.contains('wish-done')) wishInput.focus(); }, 1600);
+        });
+
+        // 许愿输入框：眼睛切换、提交后愿望化作大气泡飞向夜空
+        const eyeBtn = document.querySelector('.eye-btn');
+
+        function submitWish() {
+            const text = wishInput.value.trim();
+            if (!text) { wishInput.focus(); return; }
+            const el = document.createElement('div');
+            el.className = 'bless-bubble bless-text bless-wish';
+            el.textContent = text;
+            el.style.setProperty('--x', '44vw');
+            el.style.setProperty('--dur', '9s');
+            el.style.setProperty('--drift', '4vw');
+            el.style.setProperty('--o', '0.95');
+            el.style.setProperty('--tilt', '0deg');
+            el.style.bottom = '30%';
+            bubbleBox.appendChild(el);
+            wishInput.value = '';
+            document.body.classList.add('wish-done');
+            setTimeout(enterBlow, 900);
+        }
+
+        document.querySelector('.wish-submit').addEventListener('click', submitWish);
+        wishInput.addEventListener('keydown', e => { if (e.key === 'Enter') submitWish(); });
+        eyeBtn.addEventListener('click', () => {
+            const show = !wishInput.classList.contains('plain');
+            wishInput.classList.toggle('plain', show);
+            eyeBtn.classList.toggle('showing', show);
+        });
+
+        // 吹蜡烛：蛋糕恢复大小，弹出吹气卡片；按住按钮或对着麦克风吹气吹灭蜡烛
+        const holdBtn = document.querySelector('.blow-hold');
+        const blowBars = Array.from(document.querySelectorAll('.blow-bars i'));
+        let micStream = null, micAnalyser = null, micData = null, audioCtx = null, micReady = false;
+        let holding = false, blowLevel = 0, blowProgress = 0, candlesOut = false;
+        const candleEls = Array.from(document.querySelectorAll('.candle'));
+
+        function enterBlow() {
+            document.body.classList.add('blow');
+            // 吹蜡烛阶段先展示第一个场景的照片墙
+            memIdx = 0;
+            showScene(0);
+            initMic();
+        }
+
+        async function initMic() {
+            try {
+                micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const src = audioCtx.createMediaStreamSource(micStream);
+                micAnalyser = audioCtx.createAnalyser();
+                micAnalyser.fftSize = 512;
+                src.connect(micAnalyser);
+                micData = new Uint8Array(micAnalyser.frequencyBinCount);
+                micReady = true;
+                document.querySelector('.mic-btn').classList.add('live');
+            } catch (e) {
+                micReady = false; // 麦克风不可用时，仍可按住按钮吹蜡烛
+            }
+        }
+
+        function blowOutCandles() {
+            if (candlesOut) return;
+            candlesOut = true;
+            candleEls.forEach(c => c.classList.add('out')); // 所有蜡烛同时熄灭
+            document.body.classList.add('card-out');          // 卡片立即快速收起（不等 2.5s 停留）
+            document.body.classList.remove('gusting');
+            if (micStream) micStream.getTracks().forEach(t => t.stop());
+            holdBtn.classList.remove('holding');
+            // 吹灭后短暂过渡，直接展示第一个场景
+            setTimeout(() => {
+                document.body.classList.add('candles-out');
+                setTimeout(startMemory, 1500); // 延迟 1.5s 再展示第一张回忆卡片
+                ['生日快乐 🎂', '愿望成真 ✨', '又长大一岁啦 🎉'].forEach((txt, i) => {
+                    setTimeout(() => {
+                        const el = document.createElement('div');
+                        el.className = 'bless-bubble bless-text';
+                        el.textContent = txt;
+                        el.style.setProperty('--x', (36 + i * 13) + 'vw');
+                        el.style.setProperty('--dur', '7s');
+                        el.style.setProperty('--drift', (4 + i * 2) + 'vw');
+                        el.style.setProperty('--o', '0.95');
+                        el.style.setProperty('--tilt', ((i - 1) * 4) + 'deg');
+                        el.style.bottom = '32%';
+                        bubbleBox.appendChild(el);
+                    }, 600 + i * 450);
+                });
+            }, 700);
+        }
+
+        holdBtn.addEventListener('pointerdown', e => {
+            e.preventDefault();
+            holding = true;
+            holdBtn.classList.add('holding');
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        });
+        ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev =>
+            holdBtn.addEventListener(ev, () => { holding = false; holdBtn.classList.remove('holding'); })
+        );
+
+        let blowLast = performance.now();
+        function blowFrame(now) {
+            const dt = Math.min((now - blowLast) / 1000, 0.05);
+            blowLast = now;
+            const active = document.body.classList.contains('blow') && !candlesOut;
+            if (active) {
+                let mic = 0;
+                if (micReady && micAnalyser) {
+                    micAnalyser.getByteFrequencyData(micData);
+                    let sum = 0;
+                    for (let i = 2; i < 40; i++) sum += micData[i];
+                    mic = Math.max(0, Math.min(1, (sum / (38 * 255) - 0.08) * 6));
+                }
+                const target = holding ? 1 : mic;
+                blowLevel += (target - blowLevel) * Math.min(1, dt * 8);
+                if (blowLevel > 0.3) blowProgress = Math.min(1, blowProgress + (blowLevel - 0.25) * dt * 0.55);
+                // 吹气强度大时火焰切换为被吹弯的状态
+                if (blowLevel > 0.45) document.body.classList.add('gusting');
+                else if (blowLevel < 0.25) document.body.classList.remove('gusting');
+                for (let i = 0; i < blowBars.length; i++) {
+                    const v = 0.18 + blowLevel * (0.3 + 0.7 * Math.abs(Math.sin(now / 150 + i * 0.85)));
+                    blowBars[i].style.transform = `scaleY(${v.toFixed(2)})`;
+                }
+                holdBtn.style.setProperty('--p', blowProgress.toFixed(3));
+                // 吹满后所有蜡烛一起熄灭
+                if (blowProgress >= 1) blowOutCandles();
+            }
+            requestAnimationFrame(blowFrame);
+        }
+        requestAnimationFrame(blowFrame);
+
+        // ========== 时间轴回忆：节点场景依次展示（时间 / 地点 / 描述 / 照片） ==========
+        // 时间轴节点数据：数组长度对应轨迹节点数（时间 / 地点 / 描述 / 照片墙）
+        // 每个目录名就是回忆日期：01.01 表示 1 月 1 日，图片来自对应日期相册
+        const memPhotos = {
+            '01.01': ['微信图片_20261030190759_34_5.jpg', '微信图片_20261030190759_35_5.png', '微信图片_20261030190759_36_5.jpg', '微信图片_20261030190759_37_5.jpg', '微信图片_20261030190759_38_5.jpg', '微信图片_20261030190759_39_5.jpg', '微信图片_20261030190759_40_5.jpg', '微信图片_20261030190759_41_5.jpg', '微信图片_20261030190759_42_5.jpg', '微信图片_20261030190759_43_5.jpg', '微信图片_20261030190759_44_5.jpg', '微信图片_20261030191125_46_5.jpg', '微信图片_20261030191125_47_5.jpg'],
+            '01.03': ['微信图片_20261030191125_48_5.jpg', '微信图片_20261030191125_49_5.jpg', '微信图片_20261030191125_50_5.jpg', '微信图片_20261030191125_51_5.jpg', '微信图片_20261030191125_52_5.jpg', '微信图片_20261030191125_53_5.jpg', '微信图片_20261030191159_54_5.jpg', '微信图片_20261030191159_55_5.jpg', '微信图片_20261030191159_56_5.jpg', '微信图片_20261030191159_57_5.jpg', '微信图片_20261030191159_58_5.jpg', '微信图片_20261030191159_59_5.jpg', '微信图片_20261030191159_60_5.jpg', '微信图片_20261030191159_61_5.jpg'],
+            '01.04': ['微信图片_20261030191602_63_5.jpg', '微信图片_20261030191602_64_5.jpg', '微信图片_20261030191602_65_5.jpg', '微信图片_20261030191602_66_5.jpg', '微信图片_20261030191602_67_5.jpg', '微信图片_20261030191602_68_5.jpg', '微信图片_20261030191602_69_5.jpg', '微信图片_20261030191602_70_5.jpg', '微信图片_20261030191602_71_5.jpg', '微信图片_20261030191602_72_5.jpg', '微信图片_20261030191602_73_5.jpg', '微信图片_20261030191602_74_5.jpg', '微信图片_20261030191602_75_5.jpg', '微信图片_20261030191602_76_5.jpg', '微信图片_20261030191602_77_5.jpg', '微信图片_20261030191602_78_5.jpg', '微信图片_20261030191602_79_5.jpg', '微信图片_20261030191643_80_5.jpg', '微信图片_20261030191643_81_5.jpg', '微信图片_20261030191643_82_5.jpg', '微信图片_20261030191643_83_5.jpg', '微信图片_20261030191643_84_5.jpg'],
+            '03.13': ['微信图片_20261030191918_87_5.jpg', '微信图片_20261030191918_88_5.jpg', '微信图片_20261030191918_89_5.jpg', '微信图片_20261030191918_90_5.jpg', '微信图片_20261030191918_91_5.jpg', '微信图片_20261030191918_92_5.jpg', '微信图片_20261030191918_93_5.jpg', '微信图片_20261030191918_94_5.jpg', '微信图片_20261030191918_95_5.jpg', '微信图片_20261030191918_96_5.jpg', '微信图片_20261030191918_97_5.jpg', '微信图片_20261030191918_98_5.jpg', '微信图片_20261030191918_99_5.jpg', '微信图片_20261030191918_100_5.jpg', '微信图片_20261030191918_101_5.jpg', '微信图片_20261030191918_102_5.jpg', '微信图片_20261030191918_103_5.jpg', '微信图片_20261030191918_104_5.jpg', '微信图片_20261030191918_105_5.jpg', '微信图片_20261030191918_106_5.jpg', '微信图片_20261030191918_107_5.jpg', '微信图片_20261030191918_108_5.jpg', '微信图片_20261030191918_109_5.jpg', '微信图片_20261030192005_110_5.jpg'],
+            '03.15': ['微信图片_20261030192104_112_5.jpg', '微信图片_20261030192104_113_5.jpg', '微信图片_20261030192104_114_5.jpg', '微信图片_20261030192104_115_5.jpg', '微信图片_20261030192104_116_5.jpg', '微信图片_20261030192104_117_5.jpg', '微信图片_20261030192104_118_5.jpg', '微信图片_20261030192104_119_5.jpg', '微信图片_20261030192104_120_5.jpg', '微信图片_20261030192104_121_5.jpg', '微信图片_20261030192104_122_5.jpg'],
+            '05.03': ['微信图片_20261030192230_124_5.jpg', '微信图片_20261030192230_125_5.jpg', '微信图片_20261030192230_126_5.jpg', '微信图片_20261030192230_127_5.jpg', '微信图片_20261030192230_128_5.jpg', '微信图片_20261030192230_129_5.jpg', '微信图片_20261030192415_130_5.jpg', '微信图片_20261030192415_131_5.jpg', '微信图片_20261030192415_132_5.jpg', '微信图片_20261030192415_133_5.jpg', '微信图片_20261030192415_134_5.jpg', '微信图片_20261030192530_136_5.jpg', '微信图片_20261030192530_137_5.jpg', '微信图片_20261030192530_138_5.jpg', '微信图片_20261030192530_139_5.jpg', '微信图片_20261030192530_140_5.jpg', '微信图片_20261030192530_141_5.jpg'],
+            '05.04': ['微信图片_20261030192746_142_5.jpg', '微信图片_20261030192746_143_5.jpg', '微信图片_20261030192746_144_5.jpg', '微信图片_20261030192746_145_5.jpg', '微信图片_20261030192746_146_5.jpg', '微信图片_20261030192746_147_5.jpg', '微信图片_20261030192746_148_5.jpg', '微信图片_20261030192746_149_5.jpg', '微信图片_20261030192746_150_5.jpg', '微信图片_20261030192746_151_5.jpg', '微信图片_20261030192746_153_5.jpg'],
+            '08.02': ['微信图片_20261030192848_154_5.jpg', '微信图片_20261030192848_155_5.jpg', '微信图片_20261030192848_156_5.jpg', '微信图片_20261030192848_157_5.jpg', '微信图片_20261030192848_158_5.jpg', '微信图片_20261030192848_159_5.jpg', '微信图片_20261030192848_160_5.jpg', '微信图片_20261030192848_161_5.jpg', '微信图片_20261030192848_162_5.jpg', '微信图片_20261030192848_163_5.jpg', '微信图片_20261030192848_164_5.jpg', '微信图片_20261030192848_166_5.jpg', '微信图片_20261030192848_167_5.jpg', '微信图片_20261030192848_168_5.jpg', '微信图片_20261030192848_169_5.jpg', '微信图片_20261030192848_170_5.jpg'],
+            '10.01': ['微信图片_20261030193012_172_5.jpg', '微信图片_20261030193012_173_5.jpg', '微信图片_20261030193012_174_5.jpg', '微信图片_20261030193012_175_5.jpg', '微信图片_20261030193012_176_5.jpg', '微信图片_20261030193209_177_5.jpg', '微信图片_20261030193209_178_5.jpg', '微信图片_20261030193209_179_5.jpg', '微信图片_20261030193209_180_5.jpg', '微信图片_20261030193209_181_5.jpg', '微信图片_20261030193209_182_5.jpg', '微信图片_20261030193209_183_5.jpg', '微信图片_20261030193209_184_5.jpg']
+        };
+
+        const scene = [
+            ['1月1日', '北京西站', '新年的第一束阳光落下来，我们把新的故事写在了这一页。', '01.01'],
+            ['1月3日', '天坛公园', '那天你化着格格妆，明媚又可爱，成为我记忆里最特别的冬日画面。', '01.03'],
+            ['1月11日', '环球影城', '在环球影城的欢笑和惊喜里，我们像两个孩子一样，把快乐装满了整整一天。', '01.04'],
+            ['3月13日', '南京', '从音悦台到先锋书院，再走过梧桐大道，南京的春风替我们收藏了这一天。', '03.13'],
+            ['3月15日', '苏州·上海', '从苏州到上海，城市在窗外不断后退，而我们一起走过的路，变成了心里最甜的风景。', '03.15'],
+            ['5月3日', '天坛公园·奥林匹克', '在天坛公园和奥林匹克公园之间，我们把春天走成了一段闪闪发光的回忆。', '05.03'],
+            ['5月4日', '天津', '天津的风轻轻吹过，我们牵着手慢慢走，把平凡的一天过成了只属于我们的纪念日。', '05.04'],
+            ['8月2日', '秦皇岛', '秦皇岛的海风、浪花和夕阳，都见证了我们一起吹过的夏日温柔。', '08.02'],
+            ['10月1日', '天安门', '这一年所有温柔的瞬间，都收进了今晚的烛光里。', '10.01']
+        ].map(([time, location, description, dir]) => {
+            const photos = memPhotos[dir].map(file => `./assets/mem/${dir}/${file}`);
+            return { time, location, description, photoCard: photos.slice(0, 3), photoWall: photos.slice(3) };
+        });
+        const memCard = document.querySelector('.mem-card');
+        const memBody = memCard.querySelector('.mem-body');
+        const memDate = memCard.querySelector('.mem-date');
+        const memPlace = memCard.querySelector('.mem-place');
+        const memDesc = memCard.querySelector('.mem-desc');
+        const memImgs = ['a', 'b', 'c'].map(k => memCard.querySelector('.mp-' + k + ' img'));
+        const tstars = Array.from(document.querySelectorAll('.tstar'));
+        const timePhotos = document.querySelector('.time-photos');
+        let memIdx = 0, memTimer = null, swapTimer = null;
+
+        // 预加载全部场景照片并提前解码，避免切换时出现空白帧闪烁
+        new Set(scene.flatMap(s => [...s.photoCard, ...s.photoWall])).forEach(src => {
+            const im = new Image();
+            im.src = src;
+            if (im.decode) im.decode().catch(() => {});
+        });
+
+        function renderTimePhotos(photoWall) {
+            const positions = [
+                { left: '2%', top: '12%', rotate: '-8deg', blur: '1.5px' },
+                { left: '15%', top: '28%', rotate: '5deg', blur: '0' },
+                { left: '4%', top: '49%', rotate: '7deg', blur: '2px' },
+                { left: '23%', top: '58%', rotate: '-5deg', blur: '1px' },
+                { left: '34%', top: '10%', rotate: '4deg', blur: '1.5px' },
+                { right: '3%', top: '13%', rotate: '7deg', blur: '1.5px' },
+                { right: '16%', top: '31%', rotate: '-5deg', blur: '0' },
+                { right: '3%', top: '51%', rotate: '-7deg', blur: '2px' },
+                { left: '34%', top: '42%', rotate: '6deg', blur: '2px' },
+                { right: '35%', top: '43%', rotate: '-6deg', blur: '2px' },
+                { left: '12%', top: '72%', rotate: '-4deg', blur: '1px' },
+                { right: '12%', top: '73%', rotate: '4deg', blur: '1px' },
+                { left: '43%', top: '66%', rotate: '-3deg', blur: '1.5px' },
+                { left: '28%', top: '78%', rotate: '6deg', blur: '2px' },
+                { right: '28%', top: '79%', rotate: '-6deg', blur: '2px' }
+            ];
+
+            timePhotos.replaceChildren();
+            photoWall.slice(0, 15).forEach((src, k) => {
+                const frame = document.createElement('div');
+                const pos = positions[k];
+                frame.className = 'tp tp-dynamic';
+                Object.assign(frame.style, {
+                    left: pos.left || 'auto',
+                    right: pos.right || 'auto',
+                    top: pos.top,
+                    transform: `rotate(${pos.rotate})`,
+                    filter: `blur(${pos.blur})`,
+                    opacity: k % 3 === 0 ? '0.76' : '0.9'
+                });
+
+                const img = document.createElement('img');
+                img.src = src;
+                img.alt = '';
+                frame.appendChild(img);
+                frame.addEventListener('click', () => openLightbox(src));
+                timePhotos.appendChild(frame);
+            });
+        }
+
+        function showScene(i) {
+            const s = scene[i];
+            clearTimeout(swapTimer); // 取消上一次未完成的切换，避免连按时在可见状态换图闪烁
+            memBody.classList.add('switching');
+            swapTimer = setTimeout(() => {
+                // 场景切换时，时间线与背景墙整体横向平移（镜头沿时间轴移动）
+                document.documentElement.style.setProperty('--memShift', ((i - (scene.length - 1) / 2) * -5).toFixed(2) + 'vw');
+                memDate.textContent = s.time;
+                memPlace.textContent = '📍 ' + s.location;
+                memDesc.textContent = s.description;
+                memImgs.forEach((img, k) => {
+                    const src = s.photoCard[k % s.photoCard.length];
+                    if (img.getAttribute('src') !== src) img.src = src;
+                });
+                renderTimePhotos(s.photoWall);
+                tstars.forEach((st, k) => st.classList.toggle('active', k === i % tstars.length));
+                memBody.classList.remove('switching');
+            }, 340);
+        }
+
+        function autoNext() {
+            if (memIdx >= scene.length - 1) { showFinalCard(); return; } // 最后一个场景看完 → 终章祝福卡
+            memIdx = (memIdx + 1) % scene.length;
+            showScene(memIdx);
+        }
+
+        function goScene(dir) {
+            // 终章卡按左键返回最后一个场景
+            if (document.body.classList.contains('final')) {
+                if (dir < 0) {
+                    document.body.classList.remove('final');
+                    document.body.classList.add('mem');
+                    memIdx = scene.length - 1;
+                    showScene(memIdx);
+                    if (memTimer) clearInterval(memTimer);
+                    memTimer = setInterval(autoNext, 6500);
+                }
+                return;
+            }
+
+            if (!document.body.classList.contains('mem')) return;
+            // 键盘手动切换：先清空自动轮播定时器
+            if (memTimer) { clearInterval(memTimer); memTimer = null; }
+
+            // 最后一个场景按右键，进入终章祝福卡，不再循环到第一个场景
+            if (dir > 0 && memIdx >= scene.length - 1) {
+                showFinalCard();
+                return;
+            }
+
+            memIdx = (memIdx + dir + scene.length) % scene.length;
+            showScene(memIdx);
+            memTimer = setInterval(autoNext, 6500);
+        }
+
+        function startMemory() {
+            document.body.classList.remove('final'); // 若从“再看一遍”回来，先收起终章卡
+            document.body.classList.add('mem');
+            memIdx = 0;
+            showScene(0);
+            if (memTimer) clearInterval(memTimer);
+            memTimer = setInterval(autoNext, 6500);
+        }
+
+        function showFinalCard() {
+            if (memTimer) { clearInterval(memTimer); memTimer = null; } // 停止自动轮播
+            document.body.classList.remove('mem');  // 回忆卡淡出
+            document.body.classList.add('final');   // 终章祝福卡淡入
+        }
+
+        // 键盘 ←/→ 手动切换场景
+        document.addEventListener('keydown', e => {
+            if (e.key === 'ArrowLeft') { e.preventDefault(); goScene(-1); }
+            else if (e.key === 'ArrowRight') { e.preventDefault(); goScene(1); }
+        });
+
+        // ========== 点击照片放大展示 ==========
+        const lightbox = document.querySelector('.lightbox');
+        const lightboxImg = lightbox.querySelector('img');
+
+        function openLightbox(src) {
+            lightboxImg.src = src;
+            lightbox.classList.add('show');
+            // 查看照片时清空并暂停自动轮播
+            if (memTimer) { clearInterval(memTimer); memTimer = null; }
+        }
+
+        function closeLightbox() {
+            lightbox.classList.remove('show');
+            // 取消查看后恢复自动轮播
+            if (document.body.classList.contains('mem') && !memTimer) {
+                memTimer = setInterval(autoNext, 6500);
+            }
+        }
+
+        lightbox.addEventListener('click', closeLightbox);
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+        // 回忆卡照片的点击放大；照片墙由 renderTimePhotos 动态绑定
+        memImgs.forEach(img => img.parentElement.addEventListener('click', () => openLightbox(img.src)));
+
+        // ========== 终章祝福卡交互 ==========
+        const finalCard = document.querySelector('.final-card');
+        const finalInput = finalCard.querySelector('.final-input');
+
+        // 再看一遍：重新播放时间轴
+        finalCard.querySelector('.final-replay').addEventListener('click', () => {
+            finalInput.value = '';
+            startMemory();
+        });
+
+        // 打开礼物：礼物图标从按钮飞入屏幕中央放大展示
+        const giftShow = document.querySelector('.gift-show');
+        const giftBig = giftShow.querySelector('.gift-big');
+
+        finalCard.querySelector('.final-continue').addEventListener('click', () => {
+            const ico = finalCard.querySelector('.gift-ico');
+            const r = ico.getBoundingClientRect();
+            giftBig.classList.remove('open');
+            giftBig.style.transition = 'none';
+            giftBig.style.left = (r.left + r.width / 2) + 'px';
+            giftBig.style.top = (r.top + r.height / 2) + 'px';
+            giftBig.style.width = r.width + 'px';
+            giftBig.style.opacity = '0';
+            giftShow.classList.add('show');
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                // 礼盒飞到屏幕中央并放大
+                giftBig.style.transition = 'left 1.15s cubic-bezier(0.22, 1, 0.36, 1), top 1.15s cubic-bezier(0.22, 1, 0.36, 1), width 1.15s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease';
+                giftBig.style.left = '50%';
+                giftBig.style.top = '54%';
+                giftBig.style.width = 'min(42vw, 440px)';
+                giftBig.style.opacity = '1';
+                // 礼盒落定后开盖，随后手机弹出
+                setTimeout(() => giftBig.classList.add('open'), 1150);
+            }));
+            // 礼物落定后飘出祝福
+            setTimeout(() => {
+                ['生日快乐 🎂', '惊喜连连 🎁', '心愿成真 ✨'].forEach((txt, i) => {
+                    setTimeout(() => {
+                        const el = document.createElement('div');
+                        el.className = 'bless-bubble bless-text';
+                        el.textContent = txt;
+                        el.style.setProperty('--x', (38 + i * 12) + 'vw');
+                        el.style.setProperty('--dur', '7s');
+                        el.style.setProperty('--drift', (4 + i * 2) + 'vw');
+                        el.style.setProperty('--o', '0.95');
+                        el.style.setProperty('--tilt', ((i - 1) * 4) + 'deg');
+                        el.style.bottom = '36%';
+                        bubbleBox.appendChild(el);
+                    }, i * 450);
+                });
+            }, 1250);
+        });
+
+        function closeGift() {
+            giftShow.classList.remove('show');
+            giftBig.classList.remove('open');
+            setTimeout(() => { giftBig.style.opacity = '0'; }, 450);
+        }
+
+        giftShow.addEventListener('click', closeGift);
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeGift(); });
+
+        // ========== 测试快捷跳转：URL ?step=1~5 / 键盘数字 1~5 ==========
+        // function resetForStepTest() {
+        //     if (memTimer) { clearInterval(memTimer); memTimer = null; }
+        //     if (swapTimer) { clearTimeout(swapTimer); swapTimer = null; }
+        //     if (musicPlaying) stopMusic();
+        //     if (micStream) micStream.getTracks().forEach(track => track.stop());
+        //     candlesOut = false;
+        //     blowProgress = 0;
+        //     blowLevel = 0;
+        //     document.body.classList.remove('wish', 'wish-done', 'blow', 'gusting', 'card-out', 'candles-out', 'mem', 'final');
+        //     candleEls.forEach(candle => candle.classList.remove('out'));
+        //     bubbleBox.replaceChildren();
+        //     closeGift();
+        //     giftBig.classList.remove('open');
+        //     giftBig.style.opacity = '0';
+        // }
+
+        // function jumpToStep(step) {
+        //     const target = Number(step);
+        //     if (!Number.isInteger(target) || target < 1 || target > 5) return;
+        //     resetForStepTest();
+
+        //     if (target === 1) return;
+        //     if (target === 2) {
+        //         document.body.classList.add('wish');
+        //         return;
+        //     }
+        //     if (target === 3) {
+        //         document.body.classList.add('blow');
+        //         return;
+        //     }
+        //     if (target === 4) {
+        //         document.body.classList.add('blow', 'candles-out', 'mem');
+        //         memIdx = 0;
+        //         showScene(0);
+        //         memTimer = setInterval(autoNext, 6500);
+        //         return;
+        //     }
+        //     document.body.classList.add('blow', 'candles-out', 'final');
+        //     showFinalCard();
+        // }
+
+        // const testStep = new URLSearchParams(window.location.search).get('step');
+        // if (testStep) jumpToStep(testStep);
+        // document.addEventListener('keydown', e => {
+        //     if (!e.ctrlKey && !e.metaKey && /^[1-5]$/.test(e.key)) jumpToStep(e.key);
+        // });
+
+        // ========== 照片环形轮播 ==========
+        (function () {
+            const ring = document.querySelector('.photo-ring');
+            const PHOTOS = Object.values(memPhotos)
+                .flat()
+                .map((file, index, files) => {
+                    const dirs = Object.keys(memPhotos);
+                    const dir = dirs.find(key => memPhotos[key].includes(file));
+                    return `assets/mem/${dir}/${file}`;
+                })
+                .sort(() => Math.random() - 0.5);
+            const CROPS = ['center', 'center 30%', 'center 65%', 'center 15%', 'center 80%', 'center 45%'];
+            const ARC = 200;         // 半弧：±100°，卡片只在后方的半段弧上流动
+            const SPEED = 4;         // 轮播速度：度/秒
+            const TILT = 5;          // 随弧线切线的倾斜幅度
+            // 三层景深：同一轨道同一排布，后层仅整体向上偏移、垫在主层后面露出上缘
+            const LAYERS = [
+                { n: 16, sMul: 1,    blur: 0, dim: 0,    speedMul: 1,    lift: 0,    alpha: 1,   zBase: 200, phOff: 0 },
+                { n: 18, sMul: 0.8,  blur: 3, dim: 0.16, speedMul: 0.72, lift: 0.95, alpha: 0.9, zBase: 120, phOff: 7 },
+                { n: 20, sMul: 0.62, blur: 4, dim: 0.28, speedMul: 0.5,  lift: 1.55, alpha: 0.8, zBase: 60,  phOff: 10 },
+            ];
+
+            const cards = [];
+            LAYERS.forEach((L, li) => {
+                const layerPhotos = [...PHOTOS].sort(() => Math.random() - 0.5);
+                for (let i = 0; i < L.n; i++) {
+                    const el = document.createElement('div');
+                    el.className = 'ring-card';
+                    const img = document.createElement('img');
+                    const src = layerPhotos[i % layerPhotos.length];
+                    img.src = src;
+                    img.alt = '';
+                    img.style.objectPosition = CROPS[(i * 2 + li) % CROPS.length];
+                    img.decoding = 'async';
+                    el.addEventListener('click', e => {
+                        e.stopPropagation();
+                        openLightbox(src);
+                    });
+                    el.appendChild(img);
+                    ring.appendChild(el);
+                    const aspect = i % 3 === 1 ? '4 / 3' : '3 / 2';
+                    el.style.aspectRatio = aspect;
+                    if (L.blur) el.style.filter = `blur(${L.blur}px)`; // 后两层整卡虚化（静态设置，不逐帧写）
+                    cards.push({
+                        el, img, L,
+                        base: -100 + i * (ARC / L.n) + L.phOff, // 各层错开相位，让后层从主层间隙中露出
+                        jitter: ((i * 7) % 5 - 2) * 1.2,  // 每张卡固定的小角度差异
+                        hFactor: i % 3 === 1 ? 0.75 : 2 / 3,             // 卡片高宽比系数
+                        rotYJ: ((i * 5) % 5 - 2) * 2.5,   // 每张卡固定的 rotateY 微偏角
+                        st: {},                           // 上一次写入的样式缓存（避免每帧重复写）
+                    });
+                }
+            });
+
+            // 预解码大图，避免卡片转到某张照片时才触发解码造成顿挫
+            cards.forEach(c => { if (c.img.decode) c.img.decode().catch(() => {}); });
+
+            let cx = 0, baseY = 0, rx = 0, baseW = 0;
+            function layout() {
+                const w = innerWidth, h = innerHeight;
+                cx = w / 2;
+                baseY = h * 0.53;                     // 卡片底边基线（略低于屏幕中部）
+                rx = Math.min(w * 0.62, 1200);        // 环横向半径（半弧两端到达屏幕边缘外）
+                baseW = Math.min(w * 0.24, 380);      // 侧边卡片的基准宽度
+                if (w < 720) { baseW = Math.max(w * 0.34, 140); rx = w * 0.52; }
+                cards.forEach(c => { c.el.style.width = baseW + 'px'; });
+            }
+
+            let phase = 0;
+            let last = performance.now();
+            function frame(now) {
+                const dt = Math.min((now - last) / 1000, 0.05);
+                last = now;
+                // 从右向左流动：卡片从右边缘入场，穿过蛋糕后方，从左边缘离场
+                if (!document.body.classList.contains('reduced')) phase -= SPEED * dt;
+
+                // 许愿模式：照片墙已淡出，跳过卡片逐帧更新以节省开销（step3 改用时间轨迹背景）
+                if (document.body.classList.contains('wish')) {
+                    requestAnimationFrame(frame);
+                    return;
+                }
+
+                for (const c of cards) {
+                    const L = c.L;
+                    let th = ((c.base + phase * L.speedMul) % 360 + 540) % 360 - 180; // 归一化到 (-180,180]，各层速度不同产生视差
+                    // 只在 ±100° 的半弧上流动：左边缘 → 蛋糕后方 → 右边缘，越界折返（两端已淡出，无跳变）
+                    if (th > 100) th -= ARC;
+                    if (th < -100) th += ARC;
+
+                    const rad = th * Math.PI / 180;
+                    const sn = Math.sin(rad), cs = Math.cos(rad);
+                    const near = (1 - cs) / 2;        // 0 正后方（最远）→ 0.5 弧端（最近）
+                    const x = cx + rx * sn;
+                    const scale = (0.52 + 0.95 * near) * L.sMul; // 景深 × 层深
+                    const bob = Math.sin(now / 1400 + c.base) * 4;   // 轻微浮动
+                    const cardH = baseW * scale * c.hFactor;         // 当前渲染高度
+                    // 后层与主层同轨道，仅整体向上偏移：底边跟随主层卡片顶部，露出上缘
+                    const mainH = baseW * (scale / L.sMul) * (2 / 3); // 主层同位置卡片高度
+                    const y = baseY - cardH / 2 - (1 - Math.abs(sn)) * 12 + bob - mainH * L.lift;
+                    const op = (th > 88 ? Math.max(0, 1 - (th - 88) / 12)
+                             : th < -88 ? Math.max(0, 1 - (-th - 88) / 12) : 1) * L.alpha;
+                    const rot = sn * TILT + c.jitter;
+                    const rotY = -sn * 22 + c.rotYJ; // 沿弧线切线的 3D 偏转角 + 每张卡微偏角
+
+                    // 仅在值真正变化时写样式 + 量化，减少重排/重绘带来的掉帧
+                    const st = c.st;
+                    const tx = `translate(-50%,-50%) translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) perspective(900px) rotateY(${rotY.toFixed(2)}deg) rotate(${rot.toFixed(2)}deg) scale(${scale.toFixed(3)})`;
+                    if (st.tx !== tx) { c.el.style.transform = tx; st.tx = tx; }
+                    const opS = op.toFixed(2);
+                    if (st.op !== opS) { c.el.style.opacity = opS; st.op = opS; }
+                    const z = L.zBase + Math.round(scale * 100);
+                    if (st.z !== z) { c.el.style.zIndex = z; st.z = z; }
+                    const br = (Math.max(0.35, Math.min(1.05, 0.58 + 0.85 * near - L.dim)) * 20 | 0) / 20; // 量化到 0.05，减少滤镜重绘频率；后层额外压暗
+                    const fS = `brightness(${br.toFixed(2)}) saturate(0.95)`;
+                    if (st.fS !== fS) { c.img.style.filter = fS; st.fS = fS; }
+                }
+                requestAnimationFrame(frame);
+            }
+
+            layout();
+            addEventListener('resize', layout);
+            requestAnimationFrame(frame);
+        })();
+    </script>
+</body>
+</html>
