@@ -7,6 +7,7 @@
 function editDistanceDP(s, t) {
     const m = s.length
     const n = t.length
+    // 把 s 的前 i 个字符 变成 t 的前 j 个字符 所需最少步数
     const dp = Array(m + 1).fill(0).map(() => Array(n + 1).fill(0))
     //初始化首行列
     for (let i = 0; i <= m; i++) dp[i][0] = i
